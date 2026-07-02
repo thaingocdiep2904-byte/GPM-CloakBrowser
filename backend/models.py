@@ -20,16 +20,29 @@ class ProfileCreate(BaseModel):
     gpu_vendor: str | None = None
     gpu_renderer: str | None = None
     hardware_concurrency: int | None = None
-    humanize: bool = False
+    humanize: bool = True
     human_preset: Literal["default", "careful"] = "default"
     headless: bool = False
-    geoip: bool = False
+    geoip: bool = True
     clipboard_sync: bool = True
     auto_launch: bool = False
     color_scheme: Literal["light", "dark", "no-preference"] | None = None
     launch_args: list[str] = Field(default_factory=list)
     notes: str | None = None
     tags: list[TagCreate] | None = None
+    canvas_noise: str | None = "off"
+    client_rect_noise: str | None = "off"
+    webgl_noise: str | None = "off"
+    audio_noise: str | None = "on"
+    webgl_meta_masked: bool | None = True
+    media_devices_masked: bool | None = True
+    media_audio_inputs: int | None = 2
+    media_audio_outputs: int | None = 1
+    media_video_inputs: int | None = 0
+    device_memory: int | None = 4
+    mac_address: str | None = None
+    browser_brand: str | None = None
+    storage_quota: int | None = None
 
 
 class ProfileUpdate(BaseModel):
@@ -55,6 +68,19 @@ class ProfileUpdate(BaseModel):
     launch_args: list[str] | None = None
     notes: str | None = Field(default=None)
     tags: list[TagCreate] | None = None
+    canvas_noise: str | None = None
+    client_rect_noise: str | None = None
+    webgl_noise: str | None = None
+    audio_noise: str | None = None
+    webgl_meta_masked: bool | None = None
+    media_devices_masked: bool | None = None
+    media_audio_inputs: int | None = None
+    media_audio_outputs: int | None = None
+    media_video_inputs: int | None = None
+    device_memory: int | None = None
+    mac_address: str | None = None
+    browser_brand: str | None = Field(default=None)
+    storage_quota: int | None = Field(default=None)
 
 
 class TagCreate(BaseModel):
@@ -81,12 +107,25 @@ class ProfileResponse(BaseModel):
     gpu_vendor: str | None = None
     gpu_renderer: str | None = None
     hardware_concurrency: int | None = None
-    humanize: bool = False
+    humanize: bool = True
     human_preset: str = "default"
     headless: bool = False
-    geoip: bool = False
+    geoip: bool = True
     clipboard_sync: bool = True
     auto_launch: bool = False
+    canvas_noise: str | None = "off"
+    client_rect_noise: str | None = "off"
+    webgl_noise: str | None = "off"
+    audio_noise: str | None = "on"
+    webgl_meta_masked: bool | None = True
+    media_devices_masked: bool | None = True
+    media_audio_inputs: int | None = 2
+    media_audio_outputs: int | None = 1
+    media_video_inputs: int | None = 0
+    device_memory: int | None = 4
+    mac_address: str | None = None
+    browser_brand: str | None = None
+    storage_quota: int | None = None
 
     @field_validator("clipboard_sync", mode="before")
     @classmethod
@@ -103,6 +142,8 @@ class ProfileResponse(BaseModel):
     status: str = "stopped"  # "running" | "stopped"
     vnc_ws_port: int | None = None
     cdp_url: str | None = None
+    last_run: str | None = None
+    storage_bytes: int | None = None
 
 
 class LaunchResponse(BaseModel):
@@ -117,6 +158,7 @@ class StatusResponse(BaseModel):
     running_count: int
     binary_version: str
     profiles_total: int
+    os_name: str
 
 
 class ProfileStatusResponse(BaseModel):
@@ -132,3 +174,91 @@ class ClipboardRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     token: str
+
+
+class BulkActionRequest(BaseModel):
+    profile_ids: list[str]
+
+
+class BulkCreateRequest(BaseModel):
+    count: int
+    name_pattern: str
+    proxies: list[str] | None = None
+    platform: str = "windows"
+    screen_width: int = 1920
+    screen_height: int = 1080
+    humanize: bool = True
+    headless: bool = False
+    geoip: bool = True
+    clipboard_sync: bool = True
+    auto_launch: bool = False
+    notes: str | None = None
+    tags: list[TagCreate] | None = None
+
+
+class BulkActionResponse(BaseModel):
+    success: list[str]
+    failed: dict[str, str]
+
+
+class ProxyCheckResult(BaseModel):
+    status: str
+    ip: str | None = None
+    country: str | None = None
+    error: str | None = None
+
+
+class BulkProxyCheckResponse(BaseModel):
+    results: dict[str, ProxyCheckResult]
+
+
+class BulkStartupUrlRequest(BaseModel):
+    profile_ids: list[str]
+    startup_url: str
+
+
+class BulkResetProxyRequest(BaseModel):
+    profile_ids: list[str]
+    proxies: list[str] | None = None
+
+
+class BookmarkItem(BaseModel):
+    name: str
+    url: str
+
+
+class BulkBookmarkRequest(BaseModel):
+    profile_ids: list[str]
+    bookmarks: list[BookmarkItem]
+
+
+class BulkGroupRequest(BaseModel):
+    profile_ids: list[str]
+    tags: list[TagCreate]
+
+
+class ImportItem(BaseModel):
+    name: str
+    proxy: str | None = None
+    notes: str | None = None
+
+
+class BulkImportRequest(BaseModel):
+    profiles: list[ImportItem]
+
+
+class AppSettings(BaseModel):
+    profile_path: str | None = None
+    compression_mode: Literal["default", "7z"] | None = "default"
+    license_key: str | None = "CLOAK-XXXX-XXXX-XXXX"
+    language: Literal["en", "cn", "vi"] | None = "vi"
+    storage_type: Literal["local", "s3"] | None = "local"
+    theme: Literal["light", "dark"] | None = "dark"
+    reopen_tabs: bool | None = False
+    auto_clear_cache: bool | None = True
+    auto_resize_window: bool | None = False
+    no_trash: bool | None = False
+    default_extensions: str | None = "[]"
+    shared_extensions: str | None = "[]"
+    auto_update_cloakbrowser: bool | None = False
+

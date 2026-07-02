@@ -63,4 +63,13 @@
   .label {
     @apply block text-xs font-medium text-gray-400 mb-1;
   }
+  .btn-menu {
+    @apply transition-colors cursor-pointer select-none;
+  }
+  .btn-bulk {
+    @apply transition-colors cursor-pointer select-none;
+  }
+  .btn-bulk-sub {
+    @apply px-2.5 py-1 rounded bg-surface-3 hover:bg-surface-4 text-gray-300 hover:text-white border border-border/80 flex items-center gap-1.5 transition-all duration-150 cursor-pointer select-none font-medium text-[11px] h-7 shadow-sm;
+  }
 }

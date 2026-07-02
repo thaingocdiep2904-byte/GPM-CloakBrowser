@@ -121,25 +121,51 @@ def _init_profile_defaults(user_data_dir: Path) -> None:
         bookmarks_path.write_text(json.dumps(bookmarks, indent=2))
         logger.info("Created default bookmarks for %s", user_data_dir.name)
 
-    # --- DuckDuckGo as default search engine ---
+    # --- Cốc Cốc and Session Restore in Preferences ---
     prefs_path = default_dir / "Preferences"
-    if not prefs_path.exists():
-        prefs = {
-            "default_search_provider_data": {
-                "template_url_data": {
-                    "keyword": "duckduckgo.com",
-                    "short_name": "DuckDuckGo",
-                    "url": "https://duckduckgo.com/?q={searchTerms}",
-                    "suggestions_url": "https://duckduckgo.com/ac/?q={searchTerms}&type=list",
-                    "favicon_url": "https://duckduckgo.com/favicon.ico",
-                }
-            },
-            "default_search_provider": {
-                "enabled": True,
-            },
+    try:
+        if prefs_path.exists():
+            data = json.loads(prefs_path.read_text())
+        else:
+            data = {}
+            
+        data["default_search_provider_data"] = {
+            "template_url_data": {
+                "short_name": "Cốc Cốc",
+                "keyword": "coccoc.com",
+                "url": "https://coccoc.com/search?q={searchTerms}",
+                "suggestions_url": "https://coccoc.com/search/suggest?q={searchTerms}",
+                "safe_for_autoreplace": True,
+                "id": "2",
+                "prepopulate_id": "99",
+                "sync_guid": "coccoc_search_provider"
+            }
         }
-        prefs_path.write_text(json.dumps(prefs, indent=2))
-        logger.info("Set DuckDuckGo as default search for %s", user_data_dir.name)
+        
+        if "profile" not in data:
+            data["profile"] = {}
+        data["profile"]["default_search_provider"] = {
+            "enabled": True
+        }
+        
+        # Configure reopen tabs (restore session)
+        from . import database as db
+        app_settings = db.get_all_settings()
+        def to_bool(val) -> bool:
+            if not val:
+                return False
+            return str(val).lower() in ("true", "1", "yes", "on")
+            
+        reopen_tabs = to_bool(app_settings.get("reopen_tabs"))
+        if "session" not in data:
+            data["session"] = {}
+        data["session"]["restore_on_startup"] = 1 if reopen_tabs else 5
+        data["session"]["restore_on_startup_migrated"] = True
+        
+        prefs_path.write_text(json.dumps(data, indent=2))
+        logger.info("Configured Preferences for %s (reopen_tabs=%s)", user_data_dir.name, reopen_tabs)
+    except Exception as e:
+        logger.warning("Error configuring Cốc Cốc and Session in Preferences for %s: %s", user_data_dir.name, e)
 
 
 BASE_CDP_PORT = 5100
@@ -193,12 +219,28 @@ class BrowserManager:
         _init_profile_defaults(user_data_dir)
 
         try:
+            # Get settings for window resizing
+            from . import database as db
+            app_settings = db.get_all_settings()
+            def to_bool(val) -> bool:
+                if not val:
+                    return False
+                return str(val).lower() in ("true", "1", "yes", "on")
+                
+            auto_resize = to_bool(app_settings.get("auto_resize_window"))
+            if auto_resize:
+                w = profile.get("screen_width", 1920)
+                h = profile.get("screen_height", 1080)
+            else:
+                w = 1920
+                h = 1080
+
             # Start KasmVNC on the allocated display
             await self.vnc.start_vnc(
                 display,
                 ws_port,
-                width=profile.get("screen_width", 1920),
-                height=profile.get("screen_height", 1080),
+                width=w,
+                height=h,
             )
 
             # Build fingerprint args from profile settings
@@ -206,32 +248,57 @@ class BrowserManager:
             extra_args += profile.get("launch_args") or []
             extra_args.append(f"--remote-debugging-port={cdp_port}")
 
+            # Extract startup URLs (arguments starting with http:// or https://)
+            startup_urls = [arg for arg in extra_args if arg.startswith("http://") or arg.startswith("https://")]
+            # Filter them out of Chromium launch arguments to prevent launch crashes
+            extra_args = [arg for arg in extra_args if not (arg.startswith("http://") or arg.startswith("https://"))]
+
             # Normalize proxy format (host:port:user:pass → http://user:pass@host:port)
             raw_proxy = profile.get("proxy") or None
             proxy = _normalize_proxy(raw_proxy) if raw_proxy else None
             if proxy:
                 _validate_proxy(proxy)
 
-            # Launch CloakBrowser on that display
-            # DISPLAY is passed via env kwarg to avoid process-wide os.environ mutation
-            context = await launch_persistent_context_async(
-                user_data_dir=profile["user_data_dir"],
-                headless=bool(profile.get("headless", False)),
-                proxy=proxy,
-                args=extra_args,
-                timezone=profile.get("timezone") or None,
-                locale=profile.get("locale") or None,
-                humanize=bool(profile.get("humanize", False)),
-                human_preset=profile.get("human_preset", "default"),
-                geoip=bool(profile.get("geoip", False)),
-                color_scheme=profile.get("color_scheme") or None,
-                user_agent=profile.get("user_agent") or None,
-                viewport={
-                    "width": profile.get("screen_width", 1920),
-                    "height": profile.get("screen_height", 1080) - 133,
-                },
-                env={**os.environ, "DISPLAY": f":{display}"},
-            )
+            # Launch CloakBrowser
+            # On Windows, we don't pass DISPLAY env and use a standard viewport height.
+            if os.name == "nt":
+                context = await launch_persistent_context_async(
+                    user_data_dir=profile["user_data_dir"],
+                    headless=bool(profile.get("headless", False)),
+                    proxy=proxy,
+                    args=extra_args,
+                    timezone=profile.get("timezone") or None,
+                    locale=profile.get("locale") or None,
+                    humanize=bool(profile.get("humanize", False)),
+                    human_preset=profile.get("human_preset", "default"),
+                    geoip=bool(profile.get("geoip", False)),
+                    color_scheme=profile.get("color_scheme") or None,
+                    user_agent=profile.get("user_agent") or None,
+                    viewport={
+                        "width": w,
+                        "height": h,
+                    },
+                    env=os.environ.copy(),
+                )
+            else:
+                context = await launch_persistent_context_async(
+                    user_data_dir=profile["user_data_dir"],
+                    headless=bool(profile.get("headless", False)),
+                    proxy=proxy,
+                    args=extra_args,
+                    timezone=profile.get("timezone") or None,
+                    locale=profile.get("locale") or None,
+                    humanize=bool(profile.get("humanize", False)),
+                    human_preset=profile.get("human_preset", "default"),
+                    geoip=bool(profile.get("geoip", False)),
+                    color_scheme=profile.get("color_scheme") or None,
+                    user_agent=profile.get("user_agent") or None,
+                    viewport={
+                        "width": w,
+                        "height": h - 133,
+                    },
+                    env={**os.environ, "DISPLAY": f":{display}"},
+                )
 
             # Inject clipboard listener: captures copied text on every page
             # so the GET /clipboard endpoint can read it via page.evaluate()
@@ -255,6 +322,30 @@ class BrowserManager:
                     await p.evaluate(_clipboard_init_js)
                 except Exception as exc:
                     logger.debug("Clipboard init failed on existing page: %s", exc)
+
+            # Navigate to startup URLs if any
+            if startup_urls:
+                async def navigate_startup(ctx, urls):
+                    try:
+                        # Wait a short moment to ensure the context is fully stable and ready
+                        await asyncio.sleep(0.5)
+                        
+                        first_url = urls[0]
+                        pages = ctx.pages
+                        if pages:
+                            await pages[0].goto(first_url)
+                        else:
+                            page = await ctx.new_page()
+                            await page.goto(first_url)
+                            
+                        # If there are multiple startup URLs, open them in new tabs
+                        for url in urls[1:]:
+                            page = await ctx.new_page()
+                            await page.goto(url)
+                    except Exception as e:
+                        logger.warning("Failed to open startup URLs: %s", e)
+                
+                asyncio.create_task(navigate_startup(context, startup_urls))
 
             running = RunningProfile(
                 profile_id=profile_id,
@@ -286,6 +377,38 @@ class BrowserManager:
             await self.vnc.stop_vnc(display)
             raise
 
+    def _clear_profile_cache(self, profile_id: str):
+        """Clean up Chromium cache directories if auto_clear_cache setting is enabled."""
+        try:
+            from . import database as db
+            app_settings = db.get_all_settings()
+            def to_bool(val) -> bool:
+                if not val:
+                    return False
+                return str(val).lower() in ("true", "1", "yes", "on")
+                
+            if not to_bool(app_settings.get("auto_clear_cache", "true")):
+                return
+                
+            profile = db.get_profile(profile_id)
+            if not profile:
+                return
+                
+            user_data_dir = Path(profile["user_data_dir"])
+            default_dir = user_data_dir / "Default"
+            if not default_dir.exists():
+                return
+                
+            import shutil
+            cache_dirs = ["Cache", "Code Cache", "GPUCache"]
+            for cache_dir in cache_dirs:
+                target_path = default_dir / cache_dir
+                if target_path.exists() and target_path.is_dir():
+                    shutil.rmtree(str(target_path), ignore_errors=True)
+            logger.info("Auto cleared cache directories for profile %s", profile_id)
+        except Exception as e:
+            logger.warning("Error auto clearing cache for profile %s: %s", profile_id, e)
+
     async def _on_browser_closed(self, profile_id: str):
         """Called when browser exits (crash, user closed via VNC, or stop())."""
         async with self._lock:
@@ -294,6 +417,7 @@ class BrowserManager:
         if running:
             logger.info("Browser closed for profile %s, cleaning up", profile_id)
             await self.vnc.stop_vnc(running.display)
+            self._clear_profile_cache(profile_id)
 
     async def stop(self, profile_id: str):
         """Stop a running browser instance."""
@@ -312,6 +436,7 @@ class BrowserManager:
             logger.warning("Error closing context for %s: %s", profile_id, exc)
 
         await self.vnc.stop_vnc(running.display)
+        self._clear_profile_cache(profile_id)
 
     def get_status(self, profile_id: str) -> dict[str, Any]:
         """Get running status for a profile."""

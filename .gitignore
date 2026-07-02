@@ -24,3 +24,10 @@ CLAUDE.md
 publish-docker.sh
 .beads
 debug
+
+# App Data
+data/
+*.db
+*.log
+.gemini/
+.agents/

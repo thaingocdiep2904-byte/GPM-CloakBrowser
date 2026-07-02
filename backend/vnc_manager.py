@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -42,8 +43,12 @@ class VNCManager:
         ws_port: int,
         width: int = 1920,
         height: int = 1080,
-    ) -> subprocess.Popen:
+    ) -> subprocess.Popen | None:
         """Start Xvnc (KasmVNC) on the given display."""
+        if os.name == "nt":
+            logger.info("Windows detected: bypassing Xvnc startup for display :%d", display)
+            return None
+
         xvnc_bin = shutil.which("Xvnc") or "Xvnc"
 
         # KasmVNC requires -httpd to enable the WebSocket handler on the websocket port.
@@ -118,6 +123,10 @@ class VNCManager:
 
     async def cleanup_stale(self):
         """Kill orphan Xvnc processes from previous runs."""
+        if os.name == "nt":
+            logger.debug("Windows detected: skipping stale Xvnc process cleanup")
+            return
+
         try:
             result = subprocess.run(
                 ["pkill", "-f", r"Xvnc :[0-9]"],

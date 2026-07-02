@@ -11,7 +11,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-DATA_DIR = Path("/data")
+import os
+
+DATA_DIR = Path(os.environ.get("DATA_DIR", str(Path(__file__).parent.parent / "data")))
 DB_PATH = DATA_DIR / "profiles.db"
 
 
@@ -45,17 +47,30 @@ def init_db():
                 gpu_vendor TEXT,
                 gpu_renderer TEXT,
                 hardware_concurrency INTEGER,
-                humanize BOOLEAN DEFAULT 0,
+                humanize BOOLEAN DEFAULT 1,
                 human_preset TEXT DEFAULT 'default',
                 headless BOOLEAN DEFAULT 0,
-                geoip BOOLEAN DEFAULT 0,
+                geoip BOOLEAN DEFAULT 1,
                 clipboard_sync BOOLEAN DEFAULT 1,
                 auto_launch BOOLEAN DEFAULT 0,
                 color_scheme TEXT,
                 notes TEXT,
                 user_data_dir TEXT NOT NULL,
                 created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
+                updated_at TEXT NOT NULL,
+                canvas_noise TEXT DEFAULT 'off',
+                client_rect_noise TEXT DEFAULT 'off',
+                webgl_noise TEXT DEFAULT 'off',
+                audio_noise TEXT DEFAULT 'on',
+                webgl_meta_masked BOOLEAN DEFAULT 1,
+                media_devices_masked BOOLEAN DEFAULT 1,
+                media_audio_inputs INTEGER DEFAULT 2,
+                media_audio_outputs INTEGER DEFAULT 1,
+                media_video_inputs INTEGER DEFAULT 0,
+                device_memory INTEGER DEFAULT 4,
+                mac_address TEXT,
+                browser_brand TEXT,
+                storage_quota INTEGER
             );
 
             CREATE TABLE IF NOT EXISTS profile_tags (
@@ -63,6 +78,11 @@ def init_db():
                 tag TEXT NOT NULL,
                 color TEXT,
                 PRIMARY KEY (profile_id, tag)
+            );
+
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
             );
         """)
         conn.commit()
@@ -78,6 +98,38 @@ def init_db():
         if "auto_launch" not in cols:
             conn.execute("ALTER TABLE profiles ADD COLUMN auto_launch BOOLEAN DEFAULT 0")
             conn.commit()
+        if "last_run" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN last_run TEXT")
+            conn.commit()
+            
+        # Hardware fingerprints migrations
+        if "canvas_noise" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN canvas_noise TEXT DEFAULT 'off'")
+        if "client_rect_noise" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN client_rect_noise TEXT DEFAULT 'off'")
+        if "webgl_noise" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN webgl_noise TEXT DEFAULT 'off'")
+        if "audio_noise" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN audio_noise TEXT DEFAULT 'on'")
+        if "webgl_meta_masked" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN webgl_meta_masked BOOLEAN DEFAULT 1")
+        if "media_devices_masked" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN media_devices_masked BOOLEAN DEFAULT 1")
+        if "media_audio_inputs" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN media_audio_inputs INTEGER DEFAULT 2")
+        if "media_audio_outputs" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN media_audio_outputs INTEGER DEFAULT 1")
+        if "media_video_inputs" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN media_video_inputs INTEGER DEFAULT 0")
+        if "device_memory" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN device_memory INTEGER DEFAULT 4")
+        if "mac_address" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN mac_address TEXT")
+        if "browser_brand" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN browser_brand TEXT")
+        if "storage_quota" not in cols:
+            conn.execute("ALTER TABLE profiles ADD COLUMN storage_quota INTEGER")
+        conn.commit()
 
 
 def _now() -> str:
@@ -91,7 +143,7 @@ def create_profile(
 ) -> dict[str, Any]:
     profile_id = str(uuid.uuid4())
     seed = fingerprint_seed if fingerprint_seed is not None else random.randint(10000, 99999)
-    user_data_dir = str(DATA_DIR / "profiles" / profile_id)
+    user_data_dir = str(get_profiles_dir() / profile_id)
     now = _now()
     tags = fields.pop("tags", None) or []
 
@@ -102,8 +154,12 @@ def create_profile(
                 user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
                 hardware_concurrency, humanize, human_preset, headless, geoip,
                 clipboard_sync, auto_launch, color_scheme, launch_args, notes,
-                user_data_dir, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                user_data_dir, created_at, updated_at,
+                canvas_noise, client_rect_noise, webgl_noise, audio_noise,
+                webgl_meta_masked, media_devices_masked, media_audio_inputs,
+                media_audio_outputs, media_video_inputs, device_memory, mac_address,
+                browser_brand, storage_quota
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 profile_id, name, seed,
                 fields.get("proxy"),
@@ -116,16 +172,29 @@ def create_profile(
                 fields.get("gpu_vendor"),
                 fields.get("gpu_renderer"),
                 fields.get("hardware_concurrency"),
-                fields.get("humanize", False),
+                fields.get("humanize", True),
                 fields.get("human_preset", "default"),
                 fields.get("headless", False),
-                fields.get("geoip", False),
+                fields.get("geoip", True),
                 fields.get("clipboard_sync", True),
                 fields.get("auto_launch", False),
                 fields.get("color_scheme"),
                 json.dumps(fields.get("launch_args") or []),
                 fields.get("notes"),
                 user_data_dir, now, now,
+                fields.get("canvas_noise", "off"),
+                fields.get("client_rect_noise", "off"),
+                fields.get("webgl_noise", "off"),
+                fields.get("audio_noise", "on"),
+                fields.get("webgl_meta_masked", True),
+                fields.get("media_devices_masked", True),
+                fields.get("media_audio_inputs", 2),
+                fields.get("media_audio_outputs", 1),
+                fields.get("media_video_inputs", 0),
+                fields.get("device_memory", 4),
+                fields.get("mac_address"),
+                fields.get("browser_brand"),
+                fields.get("storage_quota"),
             ),
         )
         for t in tags:
@@ -187,7 +256,11 @@ def update_profile(profile_id: str, **fields: Any) -> dict[str, Any] | None:
         "name", "fingerprint_seed", "proxy", "timezone", "locale", "platform",
         "user_agent", "screen_width", "screen_height", "gpu_vendor", "gpu_renderer",
         "hardware_concurrency", "humanize", "human_preset", "headless", "geoip",
-        "clipboard_sync", "auto_launch", "color_scheme", "launch_args", "notes",
+        "clipboard_sync", "auto_launch", "color_scheme", "launch_args", "notes", "last_run",
+        "canvas_noise", "client_rect_noise", "webgl_noise", "audio_noise",
+        "webgl_meta_masked", "media_devices_masked", "media_audio_inputs",
+        "media_audio_outputs", "media_video_inputs", "device_memory", "mac_address",
+        "browser_brand", "storage_quota",
     ):
         if col in fields:
             update_cols.append(f"{col} = ?")
@@ -222,3 +295,142 @@ def delete_profile(profile_id: str) -> bool:
         cursor = conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
         conn.commit()
         return cursor.rowcount > 0
+
+
+def set_last_run(profile_id: str) -> None:
+    """Update last_run timestamp for profile."""
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE profiles SET last_run = ? WHERE id = ?",
+            (_now(), profile_id),
+        )
+        conn.commit()
+
+
+def bulk_create_profiles(
+    name_pattern: str,
+    count: int,
+    proxies: list[str],
+    **fields: Any,
+) -> list[dict[str, Any]]:
+    created = []
+    tags = fields.pop("tags", None) or []
+    
+    with get_db() as conn:
+        for i in range(1, count + 1):
+            name = name_pattern.replace("[NUM]", str(i)) if "[NUM]" in name_pattern else f"{name_pattern}_{i}"
+            profile_id = str(uuid.uuid4())
+            seed = random.randint(10000, 99999)
+            user_data_dir = str(get_profiles_dir() / profile_id)
+            now = _now()
+            
+            proxy = proxies[(i - 1) % len(proxies)] if proxies else None
+            
+            conn.execute(
+                """INSERT INTO profiles (
+                    id, name, fingerprint_seed, proxy, timezone, locale, platform,
+                    user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
+                    hardware_concurrency, humanize, human_preset, headless, geoip,
+                    clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                    user_data_dir, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    profile_id, name, seed,
+                    proxy,
+                    fields.get("timezone"),
+                    fields.get("locale"),
+                    fields.get("platform", "windows"),
+                    fields.get("user_agent"),
+                    fields.get("screen_width", 1920),
+                    fields.get("screen_height", 1080),
+                    fields.get("gpu_vendor"),
+                    fields.get("gpu_renderer"),
+                    fields.get("hardware_concurrency"),
+                    fields.get("humanize", True),
+                    fields.get("human_preset", "default"),
+                    fields.get("headless", False),
+                    fields.get("geoip", True),
+                    fields.get("clipboard_sync", True),
+                    fields.get("auto_launch", False),
+                    fields.get("color_scheme"),
+                    json.dumps(fields.get("launch_args") or []),
+                    fields.get("notes"),
+                    user_data_dir, now, now,
+                ),
+            )
+            for t in tags:
+                conn.execute(
+                    "INSERT INTO profile_tags (profile_id, tag, color) VALUES (?, ?, ?)",
+                    (profile_id, t["tag"], t.get("color")),
+                )
+            
+            created.append({
+                "id": profile_id,
+                "name": name,
+                "fingerprint_seed": seed,
+                "proxy": proxy,
+                "timezone": fields.get("timezone"),
+                "locale": fields.get("locale"),
+                "platform": fields.get("platform", "windows"),
+                "user_agent": fields.get("user_agent"),
+                "screen_width": fields.get("screen_width", 1920),
+                "screen_height": fields.get("screen_height", 1080),
+                "gpu_vendor": fields.get("gpu_vendor"),
+                "gpu_renderer": fields.get("gpu_renderer"),
+                "hardware_concurrency": fields.get("hardware_concurrency"),
+                "humanize": fields.get("humanize", True),
+                "human_preset": fields.get("human_preset", "default"),
+                "headless": fields.get("headless", False),
+                "geoip": fields.get("geoip", True),
+                "clipboard_sync": fields.get("clipboard_sync", True),
+                "auto_launch": fields.get("auto_launch", False),
+                "color_scheme": fields.get("color_scheme"),
+                "launch_args": fields.get("launch_args") or [],
+                "notes": fields.get("notes"),
+                "user_data_dir": user_data_dir,
+                "created_at": now,
+                "updated_at": now,
+                "tags": tags,
+            })
+            
+        conn.commit()
+    return created
+
+
+def get_setting(key: str, default: Any = None) -> str | None:
+    """Get a configuration value from settings table."""
+    with get_db() as conn:
+        try:
+            row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+            return row["value"] if row else default
+        except sqlite3.OperationalError:
+            return default
+
+
+def set_setting(key: str, value: str) -> None:
+    """Save or update a configuration value in settings table."""
+    with get_db() as conn:
+        conn.execute(
+            "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, str(value)),
+        )
+        conn.commit()
+
+
+def get_all_settings() -> dict[str, str]:
+    """Retrieve all configuration settings."""
+    with get_db() as conn:
+        try:
+            rows = conn.execute("SELECT key, value FROM settings").fetchall()
+            return {row["key"]: row["value"] for row in rows}
+        except sqlite3.OperationalError:
+            return {}
+
+
+def get_profiles_dir() -> Path:
+    """Get the active directory for browser profile user data."""
+    path = get_setting("profile_path")
+    if path:
+        return Path(path)
+    return DATA_DIR / "profiles"
+

@@ -36,6 +36,16 @@ from .models import (
     ProfileUpdate,
     StatusResponse,
     TagResponse,
+    BulkActionRequest,
+    BulkCreateRequest,
+    BulkActionResponse,
+    BulkProxyCheckResponse,
+    BulkStartupUrlRequest,
+    BulkResetProxyRequest,
+    BulkBookmarkRequest,
+    BulkGroupRequest,
+    BulkImportRequest,
+    AppSettings,
 )
 
 logger = logging.getLogger("cloakbrowser.manager")
@@ -372,11 +382,72 @@ def _filter_rfb_client_messages(data: bytes) -> bytes:
     return bytes(result)
 
 
+async def auto_update_cloakbrowser_task():
+    try:
+        raw_settings = db.get_all_settings()
+        if raw_settings.get("auto_update_cloakbrowser") != "true":
+            logger.info("Auto update CloakBrowser is disabled.")
+            return
+
+        logger.info("Auto update CloakBrowser is enabled. Checking for updates...")
+        import sys
+        python_exe = sys.executable
+        root_dir = Path(__file__).parent.parent.resolve()
+        local_cloak_path = root_dir.parent / "CloakBrowser"
+        
+        if local_cloak_path.exists():
+            logger.info(f"Local CloakBrowser repository found at {local_cloak_path}. Pulling latest changes...")
+            git_proc = await asyncio.create_subprocess_exec(
+                "git", "pull",
+                cwd=str(local_cloak_path),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout_git, stderr_git = await git_proc.communicate()
+            if git_proc.returncode == 0:
+                logger.info("Git pull CloakBrowser success: %s", stdout_git.decode().strip())
+            else:
+                logger.warning("Git pull CloakBrowser warning/failed: %s", stderr_git.decode().strip())
+                
+            # Re-install ở chế độ editable
+            pip_proc = await asyncio.create_subprocess_exec(
+                python_exe, "-m", "pip", "install", "-e", str(local_cloak_path),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await pip_proc.communicate()
+        else:
+            # Cài từ PyPI
+            logger.info("No local CloakBrowser repo. Upgrading from PyPI...")
+            pip_proc = await asyncio.create_subprocess_exec(
+                python_exe, "-m", "pip", "install", "--upgrade", "cloakbrowser",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await pip_proc.communicate()
+            
+        # Tải/Cập nhật binary Chromium
+        logger.info("Verifying CloakBrowser Chromium binary...")
+        proc_bin = await asyncio.create_subprocess_exec(
+            python_exe, "-c", "from cloakbrowser.download import ensure_binary; ensure_binary()",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        await proc_bin.communicate()
+        logger.info("CloakBrowser update process completed.")
+    except Exception as e:
+        logger.error("Error during auto update CloakBrowser: %s", str(e))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
     await browser_mgr.cleanup_stale()
     browser_mgr._auto_launch_task = asyncio.create_task(browser_mgr.auto_launch_all())
+    
+    # Khởi chạy background task update CloakBrowser
+    asyncio.create_task(auto_update_cloakbrowser_task())
+    
     logger.info("CloakBrowser Manager started")
     yield
     logger.info("Shutting down — stopping all browsers...")
@@ -386,8 +457,51 @@ async def lifespan(app: FastAPI):
     await browser_mgr.cleanup_all()
 
 
-app = FastAPI(title="CloakBrowser Manager", lifespan=lifespan)
+app = FastAPI(title="CloakBrowser Manager", lifespan=lifespan, docs_url=None)
 app.add_middleware(AuthMiddleware)
+
+from fastapi.responses import HTMLResponse
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <title>CloakBrowser Manager - API Docs</title>
+    <style>
+      body { background-color: #0b0f19 !important; margin: 0; padding: 0; }
+      #swagger-ui { 
+        filter: invert(0.89) hue-rotate(180deg) !important; 
+        background-color: #f3f4f6 !important; 
+        padding: 10px 20px;
+      }
+      .swagger-ui .info .title { color: #000000 !important; }
+      #swagger-ui img { filter: invert(1) hue-rotate(180deg) !important; }
+    </style>
+    </head>
+    <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+        const ui = SwaggerUIBundle({
+            url: '/openapi.json',
+            dom_id: '#swagger-ui',
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.presets.OAS3
+            ],
+            layout: "BaseLayout",
+            deepLinking: true,
+            showExtensions: true,
+            showCommonExtensions: true
+        });
+    </script>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 
 # ── Authentication ────────────────────────────────────────────────────────────
@@ -432,21 +546,79 @@ async def auth_logout(request: Request, response: Response):
     return {"ok": True}
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _get_storage_bytes(user_data_dir: str) -> int:
+    """Return total size in bytes using fast os.scandir (limited depth for performance)."""
+    try:
+        total = 0
+        p = Path(user_data_dir)
+        if not p.exists():
+            return 0
+
+        def _scan(path: Path, depth: int) -> None:
+            nonlocal total
+            if depth > 4:
+                return
+            try:
+                with os.scandir(path) as it:
+                    for entry in it:
+                        if entry.is_file(follow_symlinks=False):
+                            try:
+                                total += entry.stat(follow_symlinks=False).st_size
+                            except OSError:
+                                pass
+                        elif entry.is_dir(follow_symlinks=False):
+                            _scan(Path(entry.path), depth + 1)
+            except PermissionError:
+                pass
+
+        _scan(p, 0)
+        return total
+    except Exception:
+        return 0
+
+
+# In-memory storage cache: {profile_id: (bytes, timestamp)}
+_storage_cache: dict[str, tuple[int, float]] = {}
+_STORAGE_CACHE_TTL = 60  # seconds
+
+
+def _get_storage_bytes_cached(profile_id: str, user_data_dir: str) -> int:
+    """Return storage bytes from cache, compute fresh if expired."""
+    import time
+    cached = _storage_cache.get(profile_id)
+    if cached and (time.monotonic() - cached[1]) < _STORAGE_CACHE_TTL:
+        return cached[0]
+    size = _get_storage_bytes(user_data_dir)
+    _storage_cache[profile_id] = (size, time.monotonic())
+    return size
+
+
+def _enrich_profile(profile: dict, browser_mgr: BrowserManager, fresh_storage: bool = False) -> ProfileResponse:
+    """Add status, storage_bytes to profile dict and return ProfileResponse."""
+    pid = profile["id"]
+    status = browser_mgr.get_status(pid)
+    profile["status"] = status["status"]
+    profile["vnc_ws_port"] = status["vnc_ws_port"]
+    profile["cdp_url"] = status["cdp_url"]
+    profile["tags"] = [TagResponse(**t) for t in profile.get("tags", [])]
+    udd = profile.get("user_data_dir", "")
+    if fresh_storage:
+        profile["storage_bytes"] = _get_storage_bytes(udd)
+    else:
+        profile["storage_bytes"] = _get_storage_bytes_cached(pid, udd)
+    return ProfileResponse(**profile)
+
+
 # ── Profile CRUD ──────────────────────────────────────────────────────────────
 
 
 @app.get("/api/profiles", response_model=list[ProfileResponse])
 async def list_profiles():
     profiles = db.list_profiles()
-    result = []
-    for p in profiles:
-        status = browser_mgr.get_status(p["id"])
-        p["status"] = status["status"]
-        p["vnc_ws_port"] = status["vnc_ws_port"]
-        p["cdp_url"] = status["cdp_url"]
-        p["tags"] = [TagResponse(**t) for t in p.get("tags", [])]
-        result.append(ProfileResponse(**p))
-    return result
+    return [_enrich_profile(p, browser_mgr) for p in profiles]
 
 
 @app.post("/api/profiles", response_model=ProfileResponse, status_code=201)
@@ -458,12 +630,7 @@ async def create_profile(req: ProfileCreate):
     else:
         data["tags"] = []
     profile = db.create_profile(**data)
-    status = browser_mgr.get_status(profile["id"])
-    profile["status"] = status["status"]
-    profile["vnc_ws_port"] = status["vnc_ws_port"]
-    profile["cdp_url"] = status["cdp_url"]
-    profile["tags"] = [TagResponse(**t) for t in profile.get("tags", [])]
-    return ProfileResponse(**profile)
+    return _enrich_profile(profile, browser_mgr)
 
 
 @app.get("/api/profiles/{profile_id}", response_model=ProfileResponse)
@@ -471,12 +638,7 @@ async def get_profile(profile_id: str):
     profile = db.get_profile(profile_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    status = browser_mgr.get_status(profile_id)
-    profile["status"] = status["status"]
-    profile["vnc_ws_port"] = status["vnc_ws_port"]
-    profile["cdp_url"] = status["cdp_url"]
-    profile["tags"] = [TagResponse(**t) for t in profile.get("tags", [])]
-    return ProfileResponse(**profile)
+    return _enrich_profile(profile, browser_mgr)
 
 
 @app.put("/api/profiles/{profile_id}", response_model=ProfileResponse)
@@ -489,12 +651,7 @@ async def update_profile(profile_id: str, req: ProfileUpdate):
     profile = db.update_profile(profile_id, **data)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    status = browser_mgr.get_status(profile_id)
-    profile["status"] = status["status"]
-    profile["vnc_ws_port"] = status["vnc_ws_port"]
-    profile["cdp_url"] = status["cdp_url"]
-    profile["tags"] = [TagResponse(**t) for t in profile.get("tags", [])]
-    return ProfileResponse(**profile)
+    return _enrich_profile(profile, browser_mgr)
 
 
 @app.delete("/api/profiles/{profile_id}")
@@ -512,11 +669,64 @@ async def delete_profile(profile_id: str):
     # DB first — if this fails, filesystem is untouched
     db.delete_profile(profile_id)
 
-    # Then clean up disk
+    # Then clean up disk or move to trash based on no_trash setting
     if user_data_dir.exists():
-        shutil.rmtree(user_data_dir, ignore_errors=True)
+        app_settings = db.get_all_settings()
+        def to_bool(val) -> bool:
+            if not val:
+                return False
+            return str(val).lower() in ("true", "1", "yes", "on")
+            
+        no_trash = to_bool(app_settings.get("no_trash"))
+        if no_trash:
+            shutil.rmtree(user_data_dir, ignore_errors=True)
+        else:
+            # Move to data/trash folder for safety
+            trash_root = user_data_dir.parent.parent / "trash"
+            trash_root.mkdir(parents=True, exist_ok=True)
+            import time
+            timestamp = int(time.time())
+            # Clean name from special path characters
+            clean_name = "".join(c for c in profile["name"] if c.isalnum() or c in (" ", "-", "_")).strip()
+            trash_dest = trash_root / f"{clean_name}_{profile_id}_{timestamp}"
+            try:
+                shutil.move(str(user_data_dir), str(trash_dest))
+            except Exception as e:
+                # Fallback to deletion if move fails
+                shutil.rmtree(user_data_dir, ignore_errors=True)
 
     return {"ok": True}
+
+
+@app.post("/api/profiles/{profile_id}/clone", response_model=ProfileResponse)
+async def clone_profile(profile_id: str):
+    old_profile = db.get_profile(profile_id)
+    if not old_profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Tạo fields mới bằng cách loại bỏ các trường tự sinh
+    fields = {}
+    exclude_keys = {"id", "user_data_dir", "created_at", "updated_at", "name"}
+    for k, v in old_profile.items():
+        if k not in exclude_keys:
+            fields[k] = v
+
+    # Tạo tên mới
+    new_name = f"{old_profile['name']} - Copy"
+
+    # Tạo profile trong database (hàm này tự sinh id và user_data_dir mới)
+    new_profile = db.create_profile(name=new_name, **fields)
+
+    # Sao chép dữ liệu trình duyệt cũ sang thư mục mới
+    old_dir = old_profile.get("user_data_dir")
+    new_dir = new_profile.get("user_data_dir")
+    if old_dir and os.path.exists(old_dir) and new_dir:
+        try:
+            shutil.copytree(old_dir, new_dir, dirs_exist_ok=True)
+        except Exception as e:
+            logger.error(f"Error copying user data directory during clone: {e}")
+
+    return _enrich_profile(new_profile, browser_mgr)
 
 
 # ── Launch / Stop ─────────────────────────────────────────────────────────────
@@ -537,6 +747,12 @@ async def launch_profile(profile_id: str):
     except Exception as exc:
         logger.error("Failed to launch profile %s: %s", profile_id, exc)
         raise HTTPException(status_code=500, detail="Failed to launch browser")
+
+    # Record last run time
+    try:
+        db.set_last_run(profile_id)
+    except Exception:
+        pass  # Non-critical
 
     return LaunchResponse(
         profile_id=profile_id,
@@ -564,11 +780,413 @@ async def get_profile_status(profile_id: str):
     return ProfileStatusResponse(**status)
 
 
+@app.post("/api/profiles/{profile_id}/open-folder")
+async def open_profile_folder(profile_id: str):
+    profile = db.get_profile(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    
+    user_data_dir = Path(profile["user_data_dir"])
+    if not user_data_dir.exists():
+        user_data_dir.mkdir(parents=True, exist_ok=True)
+        
+    import subprocess
+    import sys
+    try:
+        if os.name == "nt":
+            os.startfile(str(user_data_dir))
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.Popen([opener, str(user_data_dir)])
+        return {"ok": True}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to open folder: {exc}")
+
+
+@app.post("/api/profiles/{profile_id}/import-cookies")
+async def import_profile_cookies(profile_id: str, cookies: list[dict]):
+    profile = db.get_profile(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+        
+    playwright_cookies = []
+    for cookie in cookies:
+        name = cookie.get("name")
+        value = cookie.get("value")
+        if not name or value is None:
+            continue
+            
+        p_cookie = {
+            "name": str(name),
+            "value": str(value),
+        }
+        
+        domain = cookie.get("domain")
+        url = cookie.get("url")
+        
+        if domain:
+            p_cookie["domain"] = str(domain)
+        elif url:
+            p_cookie["url"] = str(url)
+        else:
+            continue
+            
+        if "path" in cookie:
+            p_cookie["path"] = str(cookie["path"])
+            
+        if "secure" in cookie:
+            p_cookie["secure"] = bool(cookie["secure"])
+            
+        if "httpOnly" in cookie:
+            p_cookie["httpOnly"] = bool(cookie["httpOnly"])
+            
+        same_site_raw = cookie.get("sameSite")
+        if same_site_raw:
+            same_site_raw = str(same_site_raw).lower()
+            if "no_res" in same_site_raw or same_site_raw == "none":
+                p_cookie["sameSite"] = "None"
+            elif same_site_raw == "lax":
+                p_cookie["sameSite"] = "Lax"
+            elif same_site_raw == "strict":
+                p_cookie["sameSite"] = "Strict"
+                
+        exp = cookie.get("expirationDate") or cookie.get("expires")
+        if exp is not None:
+            try:
+                exp_val = float(exp)
+                if exp_val > 0:
+                    p_cookie["expires"] = int(exp_val)
+            except (ValueError, TypeError):
+                pass
+                
+        playwright_cookies.append(p_cookie)
+
+    if profile_id in browser_mgr.running:
+        running = browser_mgr.running[profile_id]
+        success_count = 0
+        for pc in playwright_cookies:
+            try:
+                await running.context.add_cookies([pc])
+                success_count += 1
+            except Exception:
+                pass
+        return {"ok": True, "imported": success_count}
+        
+    from cloakbrowser import launch_persistent_context_async
+    try:
+        user_data_dir = Path(profile["user_data_dir"])
+        user_data_dir.mkdir(parents=True, exist_ok=True)
+        (user_data_dir / "Default").mkdir(parents=True, exist_ok=True)
+        
+        context = await launch_persistent_context_async(
+            user_data_dir=profile["user_data_dir"],
+            headless=True,
+            geoip=False,
+            humanize=False
+        )
+        success_count = 0
+        for pc in playwright_cookies:
+            try:
+                await context.add_cookies([pc])
+                success_count += 1
+            except Exception:
+                pass
+        await context.close()
+        return {"ok": True, "imported": success_count}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to import cookies: {exc}")
+
+
+@app.get("/api/profiles/{profile_id}/export-cookies")
+async def export_profile_cookies(profile_id: str):
+    profile = db.get_profile(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+        
+    cookies = []
+    if profile_id in browser_mgr.running:
+        running = browser_mgr.running[profile_id]
+        try:
+            cookies = await running.context.cookies()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to export active cookies: {exc}")
+    else:
+        from cloakbrowser import launch_persistent_context_async
+        try:
+            context = await launch_persistent_context_async(
+                user_data_dir=profile["user_data_dir"],
+                headless=True,
+                geoip=False,
+                humanize=False
+            )
+            cookies = await context.cookies()
+            await context.close()
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to export cookies: {exc}")
+            
+    # Tra ve file JSON tai xuong truc tiep
+    import json
+    from fastapi.responses import Response
+    
+    filename = f"cookies_{profile['name'].replace(' ', '_')}.json"
+    content = json.dumps(cookies, indent=2)
+    
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
+# ── Bulk Operations ────────────────────────────────────────────────────────────
+
+
+@app.post("/api/profiles/bulk-launch", response_model=BulkActionResponse)
+async def bulk_launch_profiles(req: BulkActionRequest):
+    success = []
+    failed = {}
+    for pid in req.profile_ids:
+        profile = db.get_profile(pid)
+        if not profile:
+            failed[pid] = "Profile not found"
+            continue
+        if pid in browser_mgr.running:
+            success.append(pid)
+            continue
+        try:
+            await browser_mgr.launch(profile)
+            success.append(pid)
+        except Exception as exc:
+            logger.error("Bulk launch failed for %s: %s", pid, exc)
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
+@app.post("/api/profiles/bulk-stop", response_model=BulkActionResponse)
+async def bulk_stop_profiles(req: BulkActionRequest):
+    success = []
+    failed = {}
+    for pid in req.profile_ids:
+        if pid not in browser_mgr.running:
+            success.append(pid)
+            continue
+        try:
+            await browser_mgr.stop(pid)
+            success.append(pid)
+        except Exception as exc:
+            logger.error("Bulk stop failed for %s: %s", pid, exc)
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
+@app.post("/api/profiles/bulk-delete", response_model=BulkActionResponse)
+async def bulk_delete_profiles(req: BulkActionRequest):
+    success = []
+    failed = {}
+    for pid in req.profile_ids:
+        try:
+            if pid in browser_mgr.running:
+                await browser_mgr.stop(pid)
+            profile = db.get_profile(pid)
+            if not profile:
+                success.append(pid)
+                continue
+            user_data_dir = Path(profile["user_data_dir"])
+            db.delete_profile(pid)
+            if user_data_dir.exists():
+                shutil.rmtree(user_data_dir, ignore_errors=True)
+            success.append(pid)
+        except Exception as exc:
+            logger.error("Bulk delete failed for %s: %s", pid, exc)
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
+@app.post("/api/profiles/bulk-create", response_model=list[ProfileResponse], status_code=201)
+async def bulk_create_profiles_endpoint(req: BulkCreateRequest):
+    data = req.model_dump()
+    name_pattern = data.pop("name_pattern")
+    count = data.pop("count")
+    proxies = data.pop("proxies", [])
+    
+    tags = data.pop("tags", None)
+    if tags:
+        data["tags"] = [t.model_dump() if hasattr(t, "model_dump") else t for t in tags]
+    else:
+        data["tags"] = []
+        
+    created_list = db.bulk_create_profiles(
+        name_pattern=name_pattern,
+        count=count,
+        proxies=proxies,
+        **data
+    )
+    
+    result = []
+    for profile in created_list:
+        status = browser_mgr.get_status(profile["id"])
+        profile["status"] = status["status"]
+        profile["vnc_ws_port"] = status["vnc_ws_port"]
+        profile["cdp_url"] = status["cdp_url"]
+        profile["tags"] = [TagResponse(**t) for t in profile.get("tags", [])]
+        result.append(ProfileResponse(**profile))
+    return result
+
+
+@app.post("/api/profiles/bulk-check-proxy", response_model=BulkProxyCheckResponse)
+async def bulk_check_profiles_proxy(req: BulkActionRequest):
+    from backend.proxy_utils import check_proxy_connection
+    from backend.models import BulkProxyCheckResponse, ProxyCheckResult
+    import asyncio
+    
+    results = {}
+    
+    async def process_single(pid: str):
+        profile = db.get_profile(pid)
+        if not profile:
+            results[pid] = ProxyCheckResult(status="no_proxy", ip="-", error="Profile not found")
+            return
+        
+        proxy_str = profile.get("proxy") or ""
+        res = await check_proxy_connection(proxy_str)
+        results[pid] = ProxyCheckResult(**res)
+
+    await asyncio.gather(*(process_single(pid) for pid in req.profile_ids))
+    return BulkProxyCheckResponse(results=results)
+
+
+@app.post("/api/profiles/bulk-startup-url", response_model=BulkActionResponse)
+async def bulk_startup_url(req: BulkStartupUrlRequest):
+    success = []
+    failed = {}
+    for pid in req.profile_ids:
+        try:
+            profile = db.get_profile(pid)
+            if not profile:
+                failed[pid] = "Profile not found"
+                continue
+            args = [a for a in profile.get("launch_args", []) if not (a.startswith("http://") or a.startswith("https://"))]
+            if req.startup_url.strip():
+                args.append(req.startup_url.strip())
+            db.update_profile(pid, launch_args=args)
+            success.append(pid)
+        except Exception as exc:
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
+@app.post("/api/profiles/bulk-reset-proxy", response_model=BulkActionResponse)
+async def bulk_reset_proxy(req: BulkResetProxyRequest):
+    success = []
+    failed = {}
+    for i, pid in enumerate(req.profile_ids):
+        try:
+            proxy = req.proxies[i % len(req.proxies)] if req.proxies else None
+            db.update_profile(pid, proxy=proxy)
+            success.append(pid)
+        except Exception as exc:
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
+@app.post("/api/profiles/bulk-group", response_model=BulkActionResponse)
+async def bulk_group(req: BulkGroupRequest):
+    success = []
+    failed = {}
+    for pid in req.profile_ids:
+        try:
+            db.update_profile(pid, tags=[t.model_dump() for t in req.tags])
+            success.append(pid)
+        except Exception as exc:
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
+@app.post("/api/profiles/bulk-clear-cache", response_model=BulkActionResponse)
+async def bulk_clear_cache(req: BulkActionRequest):
+    success = []
+    failed = {}
+    for pid in req.profile_ids:
+        try:
+            profile = db.get_profile(pid)
+            if not profile:
+                failed[pid] = "Profile not found"
+                continue
+            if pid in browser_mgr.running:
+                failed[pid] = "Profile is currently running"
+                continue
+            user_data_dir = Path(profile["user_data_dir"])
+            default_dir = user_data_dir / "Default"
+            if default_dir.exists():
+                for cache_name in ("Cache", "Code Cache", "GPUCache", "Storage"):
+                    cache_path = default_dir / cache_name
+                    if cache_path.exists():
+                        shutil.rmtree(cache_path, ignore_errors=True)
+            success.append(pid)
+        except Exception as exc:
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
+@app.post("/api/profiles/bulk-bookmark", response_model=BulkActionResponse)
+async def bulk_bookmark(req: BulkBookmarkRequest):
+    import time
+    import json
+    success = []
+    failed = {}
+    ts = str(int(time.time() * 1_000_000))
+    for pid in req.profile_ids:
+        try:
+            profile = db.get_profile(pid)
+            if not profile:
+                failed[pid] = "Profile not found"
+                continue
+            user_data_dir = Path(profile["user_data_dir"])
+            default_dir = user_data_dir / "Default"
+            default_dir.mkdir(parents=True, exist_ok=True)
+            bookmarks_path = default_dir / "Bookmarks"
+            
+            children = []
+            for idx, bm in enumerate(req.bookmarks):
+                children.append({
+                    "type": "url",
+                    "id": str(idx + 2),
+                    "name": bm.name,
+                    "url": bm.url,
+                    "date_added": ts
+                })
+                
+            chrome_bookmarks = {
+                "checksum": "",
+                "roots": {
+                    "bookmark_bar": {
+                        "type": "folder",
+                        "id": "1",
+                        "name": "Bookmarks bar",
+                        "date_added": ts,
+                        "date_modified": ts,
+                        "children": children
+                    },
+                    "other": {"type": "folder", "id": "2", "name": "Other bookmarks", "children": []},
+                    "synced": {"type": "folder", "id": "3", "name": "Mobile bookmarks", "children": []}
+                },
+                "version": 1
+            }
+            bookmarks_path.write_text(json.dumps(chrome_bookmarks, indent=2))
+            success.append(pid)
+        except Exception as exc:
+            failed[pid] = str(exc)
+    return BulkActionResponse(success=success, failed=failed)
+
+
 # ── System Status ─────────────────────────────────────────────────────────────
 
 
 @app.get("/api/status", response_model=StatusResponse)
 async def get_system_status():
+    import os
     from cloakbrowser.config import CHROMIUM_VERSION
 
     profiles = db.list_profiles()
@@ -576,6 +1194,7 @@ async def get_system_status():
         running_count=len(browser_mgr.running),
         binary_version=CHROMIUM_VERSION,
         profiles_total=len(profiles),
+        os_name=os.name,
     )
 
 
@@ -1014,6 +1633,171 @@ async def cdp_page_proxy(websocket: WebSocket, profile_id: str, path: str):
 
     target_url = f"ws://127.0.0.1:{running.cdp_port}/devtools/{path}"
     await _proxy_cdp_websocket(websocket, target_url, f"CDP page proxy [{profile_id}]")
+
+
+@app.post("/api/profiles/bulk-import", response_model=list[ProfileResponse], status_code=201)
+async def bulk_import_profiles(req: BulkImportRequest):
+    import uuid
+    import random
+    
+    created_list = []
+    with db.get_db() as conn:
+        for item in req.profiles:
+            profile_id = str(uuid.uuid4())
+            seed = random.randint(10000, 99999)
+            user_data_dir = str(db.get_profiles_dir() / profile_id)
+            now = db._now()
+            
+            conn.execute(
+                """INSERT INTO profiles (
+                    id, name, fingerprint_seed, proxy, timezone, locale, platform,
+                    user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
+                    hardware_concurrency, humanize, human_preset, headless, geoip,
+                    clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                    user_data_dir, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    profile_id, item.name, seed,
+                    item.proxy,
+                    None, None, "windows", None, 1920, 1080, None, None, None,
+                    False, "default", False, False, True, False, None,
+                    "[]", item.notes, user_data_dir, now, now
+                )
+            )
+            
+            created_list.append({
+                "id": profile_id,
+                "name": item.name,
+                "fingerprint_seed": seed,
+                "proxy": item.proxy,
+                "timezone": None,
+                "locale": None,
+                "platform": "windows",
+                "user_agent": None,
+                "screen_width": 1920,
+                "screen_height": 1080,
+                "gpu_vendor": None,
+                "gpu_renderer": None,
+                "hardware_concurrency": None,
+                "humanize": False,
+                "human_preset": "default",
+                "headless": False,
+                "geoip": False,
+                "clipboard_sync": True,
+                "auto_launch": False,
+                "color_scheme": None,
+                "launch_args": [],
+                "notes": item.notes,
+                "user_data_dir": user_data_dir,
+                "created_at": now,
+                "updated_at": now,
+                "tags": []
+            })
+        conn.commit()
+        
+    result = []
+    for profile in created_list:
+        status = browser_mgr.get_status(profile["id"])
+        profile["status"] = status["status"]
+        profile["vnc_ws_port"] = status["vnc_ws_port"]
+        profile["cdp_url"] = status["cdp_url"]
+        profile["tags"] = []
+        result.append(ProfileResponse(**profile))
+    return result
+
+
+@app.post("/api/profiles/grid-layout")
+async def grid_layout_route():
+    import os
+    if os.name != "nt":
+        raise HTTPException(status_code=400, detail="Grid layout is only supported on Windows")
+        
+    running_pids = list(browser_mgr.running.keys())
+    if not running_pids:
+        return {"arranged": 0}
+        
+    profile_names = []
+    for pid in running_pids:
+        p = db.get_profile(pid)
+        if p:
+            profile_names.append(p["name"])
+            
+    from backend.proxy_utils import arrange_windows_grid
+    arranged = arrange_windows_grid(profile_names)
+    return {"arranged": arranged}
+
+
+# ── Settings Management ───────────────────────────────────────────────────────
+
+@app.get("/api/settings", response_model=AppSettings)
+async def get_settings():
+    raw_settings = db.get_all_settings()
+    
+    def to_bool(val: str | None) -> bool:
+        return val == "true"
+        
+    profile_path = raw_settings.get("profile_path")
+    if not profile_path:
+        from backend.database import get_profiles_dir
+        profile_path = str(get_profiles_dir())
+        
+    return AppSettings(
+        profile_path=profile_path,
+        compression_mode=raw_settings.get("compression_mode", "default"),
+        license_key=raw_settings.get("license_key"),
+        language=raw_settings.get("language", "en"),
+        storage_type=raw_settings.get("storage_type", "local"),
+        theme=raw_settings.get("theme", "dark"),
+        reopen_tabs=to_bool(raw_settings.get("reopen_tabs")),
+        auto_clear_cache=to_bool(raw_settings.get("auto_clear_cache")),
+        auto_resize_window=to_bool(raw_settings.get("auto_resize_window")),
+        no_trash=to_bool(raw_settings.get("no_trash")),
+        default_extensions=raw_settings.get("default_extensions", "[]"),
+        shared_extensions=raw_settings.get("shared_extensions", "[]"),
+        auto_update_cloakbrowser=to_bool(raw_settings.get("auto_update_cloakbrowser")),
+    )
+
+@app.post("/api/settings", response_model=AppSettings)
+async def update_settings(settings: AppSettings):
+    data = settings.model_dump(exclude_unset=True)
+    for key, val in data.items():
+        if val is None:
+            db.set_setting(key, "")
+        elif isinstance(val, bool):
+            db.set_setting(key, "true" if val else "false")
+        else:
+            db.set_setting(key, str(val))
+    return await get_settings()
+
+@app.post("/api/settings/select-folder")
+async def select_folder():
+    import subprocess
+    import sys
+    
+    if sys.platform != "win32":
+        raise HTTPException(status_code=400, detail="Hộp thoại chọn thư mục chỉ hỗ trợ trên hệ điều hành Windows.")
+        
+    ps_script = (
+        "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null;"
+        "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog;"
+        "$dialog.Description = 'Chọn thư mục lưu trữ profile';"
+        "if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.SelectedPath }"
+    )
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            check=True,
+            creationflags=0x08000000
+        )
+        path = result.stdout.strip()
+        if not path:
+            return {"path": None}
+        return {"path": path}
+    except Exception as e:
+        logger.error("Lỗi khi mở Folder Browser Dialog qua PowerShell: %s", e)
+        raise HTTPException(status_code=500, detail=f"Không thể mở hộp thoại chọn thư mục: {e}")
 
 
 # ── Static Frontend ───────────────────────────────────────────────────────────

@@ -21,3 +21,8 @@ declare module "@novnc/novnc/core/rfb.js" {
     clipboardPasteFrom(text: string): void;
   }
 }
+
+declare module "*.png" {
+  const value: string;
+  export default value;
+}
