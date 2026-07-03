@@ -421,27 +421,27 @@ export function ProfileTable({
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={onNew} className="btn-menu bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors">
             <Plus className="h-3.5 w-3.5" />
-            <span>Thêm mới</span>
+            <span>{t("table.btn_new")}</span>
           </button>
           
           <button onClick={onBulkNew} className="btn-menu bg-amber-600 hover:bg-amber-700 text-white py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors">
             <Plus className="h-3.5 w-3.5" />
-            <span>Tạo theo số lượng</span>
+            <span>{t("table.btn_bulk_new")}</span>
           </button>
 
-          <button onClick={() => handleBulkAction("import_excel")} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors" title="Import profile từ file CSV/Excel">
+          <button onClick={() => handleBulkAction("import_excel")} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors" title="Import profiles">
             <FolderOpen className="h-3.5 w-3.5 text-blue-500" />
-            <span>Import</span>
+            <span>{t("table.bulk_import")}</span>
           </button>
 
           {useTrash && onOpenRecycleBin && (
-            <button onClick={onOpenRecycleBin} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors animate-pulse" title="Xem các profile đã bị xóa trong Thùng rác">
+            <button onClick={onOpenRecycleBin} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors animate-pulse" title={t("table.btn_trash")}>
               <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-              <span>Thùng rác</span>
+              <span>{t("table.btn_trash")}</span>
             </button>
           )}
 
-          <button onClick={() => handleBulkAction("grid_layout")} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors" title="Sắp xếp lưới tất cả cửa sổ trình duyệt đang chạy">
+          <button onClick={() => handleBulkAction("grid_layout")} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors" title={t("table.arrange")}>
             <LayoutGrid className="h-3.5 w-3.5 text-cyan-500" />
             <span>{t("table.arrange")}</span>
           </button>
@@ -589,19 +589,19 @@ export function ProfileTable({
             onClick={() => handleBulkCopy("id")}
             disabled={selectedIds.length === 0}
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
-            title="Copy ID hàng loạt"
+            title={t("table.copy_id")}
           >
             <Copy className="h-3 w-3 text-cyan-400" />
-            <span>Copy ID</span>
+            <span>{t("table.copy_id")}</span>
           </button>
           <button
             onClick={() => handleBulkCopy("name")}
             disabled={selectedIds.length === 0}
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
-            title="Copy Tên hàng loạt"
+            title={t("table.copy_name")}
           >
             <Copy className="h-3 w-3 text-blue-400" />
-            <span>Copy tên</span>
+            <span>{t("table.copy_name")}</span>
           </button>
 
           <div className="w-px h-4 bg-border/60 mx-0.5"></div>
@@ -611,16 +611,17 @@ export function ProfileTable({
             onClick={() => handleBulkAction("export_excel")}
             disabled={selectedIds.length === 0}
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
-            title="Xuất danh sách các profile đã chọn ra file Excel/CSV"
+            title={t("table.bulk_export")}
           >
-            <span>Export profiles</span>
+            <span>{t("table.bulk_export")}</span>
           </button>
           <button
             onClick={() => handleBulkAction("cookies")}
             disabled={selectedIds.length === 0}
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
+            title={t("table.bulk_export_cookies")}
           >
-            <span>Export cookies</span>
+            <span>{t("table.bulk_export_cookies")}</span>
           </button>
 
           <div className="w-px h-4 bg-border/60 mx-0.5"></div>
@@ -632,7 +633,7 @@ export function ProfileTable({
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
           >
             <Folder className="h-3 w-3 text-amber-500" />
-            <span>Gom nhóm</span>
+            <span>{t("table.bulk_group")}</span>
           </button>
           <button
             onClick={() => handleBulkAction("extension")}
@@ -640,7 +641,7 @@ export function ProfileTable({
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
           >
             <Puzzle className="h-3 w-3 text-violet-400" />
-            <span>Sửa Extension</span>
+            <span>{t("table.bulk_extension")}</span>
           </button>
           <button
             onClick={() => handleBulkAction("proxy_check")}
@@ -648,7 +649,7 @@ export function ProfileTable({
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
           >
             <ShieldAlert className="h-3 w-3 text-emerald-400" />
-            <span>Kiểm tra proxy</span>
+            <span>{t("table.bulk_proxy")}</span>
           </button>
           <button
             onClick={() => handleBulkAction("proxy_reset")}
@@ -656,7 +657,7 @@ export function ProfileTable({
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
           >
             <Settings className="h-3 w-3 text-yellow-500" />
-            <span>Đặt lại Proxy</span>
+            <span>{t("table.bulk_reset_proxy")}</span>
           </button>
 
           <button
@@ -665,7 +666,7 @@ export function ProfileTable({
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
           >
             <Link className="h-3 w-3 text-teal-400" />
-            <span>Đặt URL khởi động</span>
+            <span>{t("table.bulk_startup")}</span>
           </button>
           <button
             onClick={() => handleBulkAction("bookmarks")}
@@ -673,7 +674,7 @@ export function ProfileTable({
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
           >
             <Bookmark className="h-3 w-3 text-purple-400" />
-            <span>Đặt Bookmarks</span>
+            <span>{t("table.bulk_bookmark")}</span>
           </button>
           <button
             onClick={() => handleBulkAction("cache")}
@@ -681,7 +682,7 @@ export function ProfileTable({
             className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
           >
             <RefreshCw className="h-3 w-3 text-sky-400" />
-            <span>Xóa Cache</span>
+            <span>{t("table.bulk_cache")}</span>
           </button>
 
         </div>

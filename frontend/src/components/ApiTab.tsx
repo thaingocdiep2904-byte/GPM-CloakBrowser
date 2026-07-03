@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Terminal, Copy, Check, ExternalLink, Code, BookOpen } from "lucide-react";
+import { useLanguage } from "../lib/i18n";
 
 type SubTab = "docs" | "playwright";
 
 export function ApiTab() {
+  const { lang } = useLanguage();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>("playwright");
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -136,7 +138,7 @@ asyncio.run(main())`;
             }`}
           >
             <Code className="h-3.5 w-3.5" />
-            <span>Mẫu Playwright Python</span>
+            <span>{lang === "vi" ? "Mẫu Playwright Python" : "Python Playwright Samples"}</span>
           </button>
         </div>
       </div>
@@ -156,14 +158,34 @@ asyncio.run(main())`;
             {/* Instruction Intro */}
             <div className="space-y-3">
               <p className="text-sm text-gray-300 leading-relaxed">
-                CloakBrowser hỗ trợ giao thức <strong>Chrome DevTools Protocol (CDP)</strong> tiêu chuẩn, cho phép các công cụ tự động hóa như <strong>Playwright</strong>, <strong>Puppeteer</strong> hoặc <strong>Selenium</strong> kết nối trực tiếp vào profile đang chạy.
+                {lang === "vi" ? (
+                  <>
+                    CloakBrowser hỗ trợ giao thức <strong>Chrome DevTools Protocol (CDP)</strong> tiêu chuẩn, cho phép các công cụ tự động hóa như <strong>Playwright</strong>, <strong>Puppeteer</strong> hoặc <strong>Selenium</strong> kết nối trực tiếp vào profile đang chạy.
+                  </>
+                ) : (
+                  <>
+                    CloakBrowser supports the standard <strong>Chrome DevTools Protocol (CDP)</strong>, allowing automation tools like <strong>Playwright</strong>, <strong>Puppeteer</strong>, or <strong>Selenium</strong> to connect directly to the running browser profile.
+                  </>
+                )}
               </p>
               <div className="bg-surface-1 border border-border p-4 rounded-lg space-y-2">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Luồng hoạt động:</h3>
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  {lang === "vi" ? "Luồng hoạt động:" : "Workflow:"}
+                </h3>
                 <ol className="list-decimal list-inside text-xs space-y-1.5 text-gray-400">
-                  <li>Gửi yêu cầu khởi chạy profile qua endpoint HTTP của CloakBrowser Manager.</li>
-                  <li>Lấy thông tin cổng CDP (cổng gán tự động từ <code className="bg-surface-2 px-1 py-0.5 rounded text-gray-300">5100-5199</code>).</li>
-                  <li>Kết nối thư viện tự động hóa Playwright/Puppeteer của bạn qua CDP port cục bộ để điều khiển.</li>
+                  {lang === "vi" ? (
+                    <>
+                      <li>Gửi yêu cầu khởi chạy profile qua endpoint HTTP của CloakBrowser Manager.</li>
+                      <li>Lấy thông tin cổng CDP (cổng gán tự động từ <code className="bg-surface-2 px-1 py-0.5 rounded text-gray-300">5100-5199</code>).</li>
+                      <li>Kết nối thư viện tự động hóa Playwright/Puppeteer của bạn qua CDP port cục bộ để điều khiển.</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>Send a profile launch request via CloakBrowser Manager HTTP endpoint.</li>
+                      <li>Get the CDP port (allocated automatically in the <code className="bg-surface-2 px-1 py-0.5 rounded text-gray-300">5100-5199</code> range).</li>
+                      <li>Connect your Playwright/Puppeteer automation library via local CDP port.</li>
+                    </>
+                  )}
                 </ol>
               </div>
             </div>
@@ -172,7 +194,7 @@ asyncio.run(main())`;
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-1.5">
-                  <span>Mẫu Python Playwright (Đồng bộ - Synchronous)</span>
+                  <span>{lang === "vi" ? "Mẫu Python Playwright (Đồng bộ - Synchronous)" : "Python Playwright Template (Synchronous)"}</span>
                 </h2>
                 <button
                   onClick={() => handleCopy(code1, "code1")}
@@ -226,7 +248,7 @@ asyncio.run(main())`;
 
             {/* Additional information link */}
             <div className="border-t border-border/60 pt-6 flex items-center justify-between text-xs text-gray-500">
-              <span>Tài liệu tham khảo Playwright CDP</span>
+              <span>{lang === "vi" ? "Tài liệu tham khảo Playwright CDP" : "Playwright CDP Reference Documentation"}</span>
               <a
                 href="https://playwright.dev/python/docs/api/class-browser#browser-connect-over-cdp"
                 target="_blank"
