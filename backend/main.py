@@ -44,6 +44,7 @@ from .models import (
     BulkGroupRequest,
     BulkImportRequest,
     AppSettings,
+    ArrangeWindowsRequest,
 )
 
 logger = logging.getLogger("cloakbrowser.manager")
@@ -1603,6 +1604,13 @@ async def bulk_update_extensions(body: BulkExtensionUpdateRequest):
     """Apply extensions to multiple profiles."""
     db.bulk_update_profiles_extensions(body.profile_ids, body.extension_ids, body.mode)
     return {"ok": True}
+
+
+@app.post("/api/profiles/arrange")
+async def arrange_windows(body: ArrangeWindowsRequest):
+    """Arrange active browser windows using CDP."""
+    res = await manager.arrange_windows(body.profile_ids, body.layout_type)
+    return res
 
 
 # ── Static Frontend ───────────────────────────────────────────────────────────

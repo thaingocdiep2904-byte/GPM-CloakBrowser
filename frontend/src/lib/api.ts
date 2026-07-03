@@ -289,9 +289,10 @@ export const api = {
       body: JSON.stringify({ profile_ids: ids, bookmarks }),
     }),
 
-  gridLayout: () =>
-    request<{ arranged: number }>("/api/profiles/grid-layout", {
+  arrangeProfiles: (ids: string[], layoutType: "grid" | "cascade") =>
+    request<{ success_count: number; failed_count: number }>("/api/profiles/arrange", {
       method: "POST",
+      body: JSON.stringify({ profile_ids: ids, layout_type: layoutType }),
     }),
 
   bulkImport: (profiles: { name: string; proxy?: string; notes?: string }[]) =>

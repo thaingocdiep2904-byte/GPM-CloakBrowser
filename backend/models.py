@@ -291,6 +291,10 @@ class ProfileExtensionToggleRequest(BaseModel):
 class BulkExtensionUpdateRequest(BaseModel):
     profile_ids: list[str]
     extension_ids: list[str]
-    mode: Literal["append", "overwrite"]
+    mode: Literal["arrange", "append", "overwrite"]  # giữ nguyên hoặc để Literal của mode cũ
+
+class ArrangeWindowsRequest(BaseModel):
+    profile_ids: list[str]
+    layout_type: Literal["grid", "cascade"] = "grid"
 
 

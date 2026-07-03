@@ -230,7 +230,7 @@ class BrowserManager:
         self._next_cdp_port = BASE_CDP_PORT
         self._auto_launch_task: asyncio.Task | None = None
 
-    async def launch(self, profile: dict[str, Any]) -> RunningProfile:
+    async def launch(self, profile: dict[str, Any], window_x: int | None = None, window_y: int | None = None) -> RunningProfile:
         """Launch a browser instance for the given profile."""
         profile_id = profile["id"]
 
@@ -306,6 +306,10 @@ class BrowserManager:
             color_scheme = profile.get("color_scheme")
             if color_scheme == "dark":
                 extra_args.append("--force-dark-mode")
+
+            if window_x is not None and window_y is not None:
+                extra_args.append(f"--window-position={window_x},{window_y}")
+                extra_args.append(f"--window-size={w},{h}")
 
             extra_args += profile.get("launch_args") or []
             extra_args.append(f"--remote-debugging-port={cdp_port}")
@@ -510,3 +514,111 @@ class BrowserManager:
             args.append(f"--fingerprint-screen-height={sh}")
 
         return args
+
+    async def arrange_windows(self, profile_ids: list[str], layout_type: str = "grid") -> dict[str, Any]:
+        """Arrange active browser windows using CDP."""
+        import math
+        
+        # 1. Filter only currently running profiles
+        active_profiles: list[RunningProfile] = []
+        for pid in profile_ids:
+            if pid in self.running:
+                active_profiles.append(self.running[pid])
+                
+        if not active_profiles:
+            return {"success_count": 0, "failed_count": 0}
+            
+        # 2. Get screen resolution via ctypes
+        screen_w, screen_h = _get_primary_screen_resolution()
+        
+        # Subtract some pixels for Windows taskbar (typically at the bottom, ~60px)
+        usable_h = max(screen_h - 60, 400)
+        usable_w = screen_w
+        
+        success_count = 0
+        failed_count = 0
+        
+        N = len(active_profiles)
+        
+        # 3. Calculate grids
+        if layout_type == "grid":
+            cols = math.ceil(math.sqrt(N))
+            rows = math.ceil(N / cols)
+            
+            cell_w = usable_w // cols
+            cell_h = usable_h // rows
+            
+            for idx, running in enumerate(active_profiles):
+                col = idx % cols
+                row = idx // cols
+                x = col * cell_w
+                y = row * cell_h
+                
+                try:
+                    pages = running.context.pages
+                    page = pages[0] if pages else await running.context.new_page()
+                    session = await running.context.new_cdp_session(page)
+                    
+                    win_info = await session.send("Browser.getWindowForTarget")
+                    window_id = win_info["windowId"]
+                    
+                    await session.send("Browser.setWindowBounds", {
+                        "windowId": window_id,
+                        "bounds": {
+                            "left": int(x),
+                            "top": int(y),
+                            "width": int(cell_w),
+                            "height": int(cell_h),
+                            "windowState": "normal"
+                        }
+                    })
+                    success_count += 1
+                except Exception as e:
+                    logger.error("Failed to set window bounds for %s via CDP: %s", running.profile_id, e)
+                    failed_count += 1
+                    
+        else:  # cascade layout
+            win_w = min(1000, usable_w - 100)
+            win_h = min(750, usable_h - 100)
+            
+            for idx, running in enumerate(active_profiles):
+                # Offset cascade step (e.g. 45px each step)
+                offset = idx * 45
+                x = 50 + (offset % (usable_w - win_w))
+                y = 50 + (offset % (usable_h - win_h))
+                
+                try:
+                    pages = running.context.pages
+                    page = pages[0] if pages else await running.context.new_page()
+                    session = await running.context.new_cdp_session(page)
+                    
+                    win_info = await session.send("Browser.getWindowForTarget")
+                    window_id = win_info["windowId"]
+                    
+                    await session.send("Browser.setWindowBounds", {
+                        "windowId": window_id,
+                        "bounds": {
+                            "left": int(x),
+                            "top": int(y),
+                            "width": int(win_w),
+                            "height": int(win_h),
+                            "windowState": "normal"
+                        }
+                    })
+                    success_count += 1
+                except Exception as e:
+                    logger.error("Failed to cascade window for %s via CDP: %s", running.profile_id, e)
+                    failed_count += 1
+                    
+        return {"success_count": success_count, "failed_count": failed_count}
+
+
+def _get_primary_screen_resolution() -> tuple[int, int]:
+    """Retrieve primary monitor resolution using Win32 API via ctypes."""
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    except Exception:
+        # Fallback for non-Windows platforms or test environments
+        return 1920, 1080

@@ -168,18 +168,18 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
     showFeedback(`Đã nhập thành công ${list.length} profiles!`);
   }, [refresh, showFeedback]);
 
-  const handleGridLayout = useCallback(async () => {
+  const handleArrangeWindows = useCallback(async (ids: string[], layoutType: "grid" | "cascade") => {
     try {
-      const res = await api.gridLayout();
-      if (res.arranged === 0) {
+      const res = await api.arrangeProfiles(ids, layoutType);
+      if (res.success_count === 0 && res.failed_count === 0) {
         alert("Không có cửa sổ trình duyệt nào đang chạy để sắp xếp.");
       } else {
-        alert(`Đã sắp xếp xong ${res.arranged} cửa sổ trình duyệt đang chạy dạng lưới!`);
+        showFeedback(`Đã sắp xếp xong: ${res.success_count} thành công, ${res.failed_count} thất bại.`);
       }
     } catch (err) {
       alert("Lỗi sắp xếp cửa sổ: " + (err instanceof Error ? err.message : String(err)));
     }
-  }, []);
+  }, [showFeedback]);
 
   const triggerBulkStartupUrl = useCallback((ids: string[]) => {
     setBulkTargetIds(ids);
@@ -397,7 +397,7 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
                 onBulkCacheClear={triggerBulkCacheClear}
                 onBulkGroup={triggerBulkGroup}
                 onBulkBookmark={triggerBulkBookmark}
-                onGridLayout={handleGridLayout}
+                onArrangeWindows={handleArrangeWindows}
                 onBulkImport={() => setActiveBulkModal("import")}
                 showFeedback={showFeedback}
                 useTrash={useTrash}

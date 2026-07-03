@@ -22,7 +22,9 @@ import {
   X,
   Check,
   AlertCircle,
-  MoreHorizontal
+  MoreHorizontal,
+  Layers,
+  ChevronDown
 } from "lucide-react";
 import { api, type Profile } from "../lib/api";
 import { StatusIndicator } from "./StatusIndicator";
@@ -47,7 +49,7 @@ interface ProfileTableProps {
   onBulkCacheClear: (ids: string[]) => void;
   onBulkGroup: (ids: string[]) => void;
   onBulkBookmark: (ids: string[]) => void;
-  onGridLayout: () => Promise<void>;
+  onArrangeWindows: (ids: string[], layoutType: "grid" | "cascade") => Promise<void>;
   onBulkImport: () => void;
   showFeedback: (msg: string) => void;
   useTrash?: boolean;
@@ -72,7 +74,7 @@ export function ProfileTable({
   onBulkCacheClear,
   onBulkGroup,
   onBulkBookmark,
-  onGridLayout,
+  onArrangeWindows,
   onBulkImport,
   showFeedback,
   useTrash = true,
@@ -328,7 +330,10 @@ export function ProfileTable({
         }
         break;
       case "grid_layout":
-        onGridLayout();
+        onArrangeWindows(selectedIds, "grid");
+        break;
+      case "cascade_layout":
+        onArrangeWindows(selectedIds, "cascade");
         break;
       case "group":
         onBulkGroup(selectedIds);
@@ -533,6 +538,34 @@ export function ProfileTable({
               <Square className="h-3.5 w-3.5" />
               <span>Đóng</span>
             </button>
+            <div className="relative group">
+              <button
+                disabled={selectedIds.length === 0 || !anyRunning}
+                className={`btn-bulk bg-surface-3 hover:bg-surface-4 border border-border text-gray-300 font-medium px-3 py-1 rounded flex items-center gap-1.5 transition-colors ${
+                  (selectedIds.length === 0 || !anyRunning) ? "opacity-30 cursor-not-allowed pointer-events-none" : ""
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5 text-violet-400" />
+                <span>Sắp xếp</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </button>
+              <div className="absolute left-0 mt-1 hidden group-hover:block bg-surface-1 border border-border rounded-lg shadow-xl py-1 z-30 min-w-[140px] transition-all">
+                <button
+                  onClick={() => handleBulkAction("grid_layout")}
+                  className="w-full text-left px-3 py-1.5 hover:bg-surface-2 text-xs text-gray-300 hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5 text-violet-400" />
+                  <span>Dạng lưới (Grid)</span>
+                </button>
+                <button
+                  onClick={() => handleBulkAction("cascade_layout")}
+                  className="w-full text-left px-3 py-1.5 hover:bg-surface-2 text-xs text-gray-300 hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <Layers className="h-3.5 w-3.5 text-blue-400" />
+                  <span>Xếp tầng (Cascade)</span>
+                </button>
+              </div>
+            </div>
             <button
               onClick={() => handleBulkAction("delete")}
               disabled={selectedIds.length === 0}
