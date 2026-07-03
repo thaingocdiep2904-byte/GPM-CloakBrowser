@@ -303,6 +303,10 @@ class BrowserManager:
                 extra_args.append(f"--disable-extensions-except={ext_paths_str}")
                 extra_args.append(f"--load-extension={ext_paths_str}")
 
+            color_scheme = profile.get("color_scheme")
+            if color_scheme == "dark":
+                extra_args.append("--force-dark-mode")
+
             extra_args += profile.get("launch_args") or []
             extra_args.append(f"--remote-debugging-port={cdp_port}")
 
