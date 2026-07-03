@@ -1609,7 +1609,7 @@ async def bulk_update_extensions(body: BulkExtensionUpdateRequest):
 @app.post("/api/profiles/arrange")
 async def arrange_windows(body: ArrangeWindowsRequest):
     """Arrange active browser windows using CDP."""
-    res = await manager.arrange_windows(body.profile_ids, body.layout_type)
+    res = await browser_mgr.arrange_windows(body.profile_ids, body.layout_type)
     return res
 
 
