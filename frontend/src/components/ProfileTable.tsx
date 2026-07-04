@@ -81,7 +81,7 @@ export function ProfileTable({
   useTrash = true,
   onOpenRecycleBin,
 }: ProfileTableProps) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [lastClickedIndex, setLastClickedIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -244,7 +244,7 @@ export function ProfileTable({
   const copyToClipboard = (text: string, msg: string) => {
     navigator.clipboard.writeText(text)
       .then(() => showFeedback(msg))
-      .catch(() => showFeedback("Lỗi sao chép bộ nhớ tạm"));
+      .catch(() => showFeedback(lang === "vi" ? "Lỗi sao chép bộ nhớ tạm" : "Failed to copy to clipboard"));
   };
 
   const handleBulkCopy = (type: "id" | "name") => {
@@ -253,10 +253,10 @@ export function ProfileTable({
     
     if (type === "id") {
       const ids = selectedProfiles.map((p) => p.id).join("\n");
-      copyToClipboard(ids, `Đã sao chép ${selectedIds.length} ID vào bộ nhớ tạm!`);
+      copyToClipboard(ids, lang === "vi" ? `Đã sao chép ${selectedIds.length} ID vào bộ nhớ tạm!` : `Copied ${selectedIds.length} IDs to clipboard!`);
     } else {
       const names = selectedProfiles.map((p) => p.name).join("\n");
-      copyToClipboard(names, `Đã sao chép ${selectedIds.length} tên vào bộ nhớ tạm!`);
+      copyToClipboard(names, lang === "vi" ? `Đã sao chép ${selectedIds.length} tên vào bộ nhớ tạm!` : `Copied ${selectedIds.length} names to clipboard!`);
     }
   };
 
@@ -275,7 +275,7 @@ export function ProfileTable({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showFeedback(`Đã xuất dữ liệu ${selectedIds.length} profile thành công!`);
+    showFeedback(lang === "vi" ? `Đã xuất dữ liệu ${selectedIds.length} profile thành công!` : `Successfully exported ${selectedIds.length} profiles!`);
   };
 
   const handleBulkAction = async (action: string) => {
@@ -317,14 +317,14 @@ export function ProfileTable({
             });
             return next;
           });
-          showFeedback(`Đã kiểm tra xong ${selectedIds.length} proxy!`);
+          showFeedback(lang === "vi" ? `Đã kiểm tra xong ${selectedIds.length} proxy!` : `Successfully checked ${selectedIds.length} proxies!`);
         } catch (err) {
-          showFeedback("Lỗi kiểm tra proxy: " + (err instanceof Error ? err.message : String(err)));
+          showFeedback((lang === "vi" ? "Lỗi kiểm tra proxy: " : "Proxy check error: ") + (err instanceof Error ? err.message : String(err)));
           setProxyCheckStates((prev) => {
             const next = { ...prev };
             selectedIds.forEach((id) => {
               if (next[id]?.checking) {
-                next[id] = { checking: false, error: "Lỗi kết nối" };
+                next[id] = { checking: false, error: lang === "vi" ? "Lỗi kết nối" : "Connection error" };
               }
             });
             return next;
@@ -358,22 +358,66 @@ export function ProfileTable({
       case "export_excel":
         handleExportCSV();
         break;
+      case "cookies":
+        await handleBulkExportCookies(selectedIds);
+        break;
       case "extension":
-        setExtensionTarget({ ids: selectedIds, name: `Đã chọn ${selectedIds.length} profiles` });
+        setExtensionTarget({ ids: selectedIds, name: lang === "vi" ? `Đã chọn ${selectedIds.length} profiles` : `Selected ${selectedIds.length} profiles` });
         break;
       case "excel":
-      case "cookies":
       case "version":
       case "sync":
-        alert(`Chức năng "${action}" đang được lên kế hoạch và sẽ sớm khả dụng ở Giai đoạn tiếp theo.`);
+        alert(lang === "vi" ? `Chức năng "${action}" đang được lên kế hoạch và sẽ sớm khả dụng ở Giai đoạn tiếp theo.` : `Feature "${action}" is planned and will be available in the next phase.`);
         break;
       default:
         break;
     }
   };
 
+  const handleBulkExportCookies = async (ids: string[]) => {
+    showFeedback(lang === "vi" ? "Đang xuất cookies hàng loạt..." : "Bulk exporting cookies...");
+    try {
+      const token = localStorage.getItem("auth_token") || "";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Accept": "application/zip",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
+      const res = await fetch(`/api/profiles/bulk-export-cookies`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ profile_ids: ids }),
+      });
+      
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || (lang === "vi" ? "Lỗi từ server" : "Server error"));
+      }
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const filename = `bulk_cookies_${new Date().toISOString().slice(0, 10)}.zip`;
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showFeedback(lang === "vi" ? "Xuất cookies thành công!" : "Cookies exported successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert((lang === "vi" ? "Không thể xuất cookies: " : "Cannot export cookies: ") + (err.message || err));
+    }
+  };
+
   const handleExportCookies = async (id: string, name: string) => {
-    showFeedback("Đang xuất cookies...");
+    showFeedback(lang === "vi" ? "Đang xuất cookies..." : "Exporting cookies...");
     try {
       const token = localStorage.getItem("auth_token") || "";
       const headers: Record<string, string> = {
@@ -386,7 +430,7 @@ export function ProfileTable({
       const res = await fetch(`/api/profiles/${id}/export-cookies`, { headers });
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(errText || "Lỗi từ server");
+        throw new Error(errText || (lang === "vi" ? "Lỗi từ server" : "Server error"));
       }
       
       const cookiesData = await res.json();
@@ -404,10 +448,10 @@ export function ProfileTable({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      showFeedback("Xuất cookies thành công!");
+      showFeedback(lang === "vi" ? "Xuất cookies thành công!" : "Cookies exported successfully!");
     } catch (err: any) {
       console.error(err);
-      alert(`Không thể xuất cookies: ${err.message || err}`);
+      alert((lang === "vi" ? "Không thể xuất cookies: " : "Cannot export cookies: ") + (err.message || err));
     }
   };
 
@@ -469,9 +513,9 @@ export function ProfileTable({
             onChange={(e) => setGroupFilter(e.target.value)}
             className="h-8 w-36 bg-surface-2 border border-border rounded px-2.5 text-white text-xs focus:outline-none focus:border-border-hover focus:ring-1 focus:ring-accent/30"
           >
-            <option value="all">Nhóm: Tất cả</option>
-            {allTags.map((t) => (
-              <option key={t} value={t}>Nhóm: {t}</option>
+            <option value="all">{t("table.filter_group_all")}</option>
+            {allTags.map((tag) => (
+              <option key={tag} value={tag}>{t("table.filter_group", { group: tag })}</option>
             ))}
           </select>
 
@@ -481,19 +525,19 @@ export function ProfileTable({
             onChange={(e) => setSortBy(e.target.value)}
             className="h-8 w-40 bg-surface-2 border border-border rounded px-2.5 text-white text-xs focus:outline-none focus:border-border-hover focus:ring-1 focus:ring-accent/30"
           >
-            <option value="newest">Sắp xếp: Mới nhất</option>
-            <option value="oldest">Sắp xếp: Cũ nhất</option>
-            <option value="name-asc">Tên: A-Z</option>
-            <option value="name-desc">Tên: Z-A</option>
+            <option value="newest">{t("table.sort_newest")}</option>
+            <option value="oldest">{t("table.sort_oldest")}</option>
+            <option value="name-asc">{t("table.sort_name_asc")}</option>
+            <option value="name-desc">{t("table.sort_name_desc")}</option>
           </select>
 
           <span className="text-gray-500 text-[10px] hidden md:inline ml-1">
-            Mẹo: Nhấn <kbd className="bg-surface-3 px-1 py-0.5 rounded text-accent border border-border">Ctrl + A</kbd> để chọn toàn bộ
+            {t("table.ctrl_a_tip")}
           </span>
         </div>
         
         <div className="text-gray-400 font-medium mr-1">
-          Tổng số: <strong className="text-white">{filtered.length}</strong> profiles
+          {t("table.total_count", { count: filtered.length })}
         </div>
       </div>
 
@@ -763,7 +807,7 @@ export function ProfileTable({
                     <td className="py-2.5 px-4">
                       <div className="flex items-center gap-1.5">
                         <StatusIndicator status={profile.status} />
-                        <span className="capitalize">{profile.status === "running" ? "Đang chạy" : "Sẵn sàng"}</span>
+                        <span className="capitalize">{profile.status === "running" ? t("table.status_running") : t("table.status_ready")}</span>
                       </div>
                     </td>
                     <td className="py-2.5 px-4 font-mono max-w-xs" title={profile.proxy || "Direct Connection"}>
@@ -782,7 +826,7 @@ export function ProfileTable({
                           return (
                             <div className="flex items-center gap-1.5 text-gray-400">
                               <RefreshCw className="h-3 w-3 animate-spin" />
-                              <span className="truncate block">{profile.proxy || "Đang kiểm tra IP máy..."}</span>
+                              <span className="truncate block">{profile.proxy || t("table.proxy_checking")}</span>
                             </div>
                           );
                         }
@@ -811,10 +855,10 @@ export function ProfileTable({
                         
                         if (state.status === "dead") {
                           return (
-                            <div className="flex items-center gap-1.5 text-rose-400" title={state.error || "Lỗi kết nối"}>
+                            <div className="flex items-center gap-1.5 text-rose-400" title={state.error || t("table.proxy_conn_error")}>
                               <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 text-rose-500" />
                               <span className="truncate block opacity-85">
-                                {profile.proxy || "Direct Connection"} <span className="text-[10px] font-sans">(Lỗi)</span>
+                                {profile.proxy || "Direct Connection"} <span className="text-[10px] font-sans">({t("table.proxy_error")})</span>
                               </span>
                             </div>
                           );
@@ -828,19 +872,19 @@ export function ProfileTable({
                       })()}</td>
                     <td className="py-2.5 px-4 text-gray-400 whitespace-nowrap">
                       {profile.last_run ? (
-                        <span title={new Date(profile.last_run).toLocaleString('vi-VN')} className="text-gray-300">
+                        <span title={new Date(profile.last_run).toLocaleString()} className="text-gray-300">
                           {(() => {
                             const d = new Date(profile.last_run);
                             const now = new Date();
                             const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-                            if (diff < 60) return `${diff}s trước`;
-                            if (diff < 3600) return `${Math.floor(diff/60)}ph trước`;
-                            if (diff < 86400) return `${Math.floor(diff/3600)}h trước`;
-                            return `${Math.floor(diff/86400)}ng trước`;
+                            if (diff < 60) return t("time.seconds_ago", { count: diff });
+                            if (diff < 3600) return t("time.minutes_ago", { count: Math.floor(diff/60) });
+                            if (diff < 86400) return t("time.hours_ago", { count: Math.floor(diff/3600) });
+                            return t("time.days_ago", { count: Math.floor(diff/86400) });
                           })()}
                         </span>
                       ) : (
-                        <span className="text-gray-600">Chưa chạy</span>
+                        <span className="text-gray-600">{t("table.not_run_yet")}</span>
                       )}
                     </td>
                     <td className="py-2.5 px-4 text-gray-400 truncate max-w-xs" title={profile.notes || ""}>
@@ -876,7 +920,7 @@ export function ProfileTable({
                             className={`flex items-center justify-center h-7 w-7 rounded transition-colors ${
                               activeMenuId === profile.id ? "bg-surface-4 text-white" : "bg-surface-3 hover:bg-surface-4 text-gray-400 hover:text-white"
                             }`}
-                            title="Thao tác khác"
+                            title={t("table.col_action")}
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </button>
@@ -893,7 +937,7 @@ export function ProfileTable({
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
                                 <Edit2 className="h-3.5 w-3.5" />
-                                <span>Chỉnh sửa</span>
+                                <span>{t("menu.edit")}</span>
                               </button>
                               <button
                                 onMouseDown={() => {
@@ -904,7 +948,7 @@ export function ProfileTable({
                                 className="w-full text-left px-3 py-1.5 hover:bg-rose-600 hover:text-white flex items-center gap-2 text-rose-400 transition-colors"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                <span>Xóa</span>
+                                <span>{t("menu.delete")}</span>
                               </button>
                               <button
                                 onMouseDown={() => {
@@ -914,7 +958,7 @@ export function ProfileTable({
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
                                 <Puzzle className="h-3.5 w-3.5" />
-                                <span>Sửa Extension</span>
+                                <span>{t("menu.edit_extension")}</span>
                               </button>
 
                               <div className="border-t border-border/60 my-1"></div>
@@ -925,15 +969,15 @@ export function ProfileTable({
                                   setActiveMenuId(null);
                                   try {
                                     await onClone(profile.id);
-                                    showFeedback("Đã nhân bản profile thành công!");
+                                    showFeedback(lang === "vi" ? "Đã nhân bản profile thành công!" : "Profile cloned successfully!");
                                   } catch (err) {
-                                    alert("Lỗi nhân bản: " + (err instanceof Error ? err.message : String(err)));
+                                    alert((lang === "vi" ? "Lỗi nhân bản: " : "Clone failed: ") + (err instanceof Error ? err.message : String(err)));
                                   }
                                 }}
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
                                 <Copy className="h-3.5 w-3.5" />
-                                <span>Nhân bản</span>
+                                <span>{t("menu.clone")}</span>
                               </button>
                               <button
                                 onMouseDown={() => {
@@ -943,7 +987,7 @@ export function ProfileTable({
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
                                 <Bookmark className="h-3.5 w-3.5" />
-                                <span>Import cookie</span>
+                                <span>{t("menu.import_cookie")}</span>
                               </button>
                               <button
                                 onMouseDown={() => {
@@ -953,7 +997,7 @@ export function ProfileTable({
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
                                 <Bookmark className="h-3.5 w-3.5" />
-                                <span>Export cookie</span>
+                                <span>{t("menu.export_cookie")}</span>
                               </button>
 
                               <div className="border-t border-border/60 my-1"></div>
@@ -961,52 +1005,38 @@ export function ProfileTable({
                               {/* Nhom 3: Copy ID, Copy Path, Open profile location */}
                               <button
                                 onMouseDown={() => {
-                                  copyToClipboard(profile.id, "Đã sao chép ID profile!");
+                                  copyToClipboard(profile.id, lang === "vi" ? "Đã sao chép ID profile!" : "Profile ID copied!");
                                   setActiveMenuId(null);
                                 }}
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
                                 <Copy className="h-3.5 w-3.5" />
-                                <span>Copy ID</span>
+                                <span>{t("menu.copy_id")}</span>
                               </button>
                               <button
                                 onMouseDown={() => {
-                                  copyToClipboard(profile.user_data_dir, "Đã sao chép đường dẫn profile!");
+                                  copyToClipboard(profile.user_data_dir, lang === "vi" ? "Đã sao chép đường dẫn profile!" : "Profile path copied!");
                                   setActiveMenuId(null);
                                 }}
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
                                 <Folder className="h-3.5 w-3.5" />
-                                <span>Copy Path</span>
+                                <span>{t("menu.copy_path")}</span>
                               </button>
                               <button
                                 onMouseDown={async () => {
                                   setActiveMenuId(null);
                                   try {
                                     await api.openFolder(profile.id);
-                                    showFeedback("Đã mở thư mục profile!");
+                                    showFeedback(lang === "vi" ? "Đã mở thư mục profile!" : "Profile directory opened!");
                                   } catch (err) {
-                                    alert("Lỗi mở thư mục: " + (err instanceof Error ? err.message : String(err)));
+                                    alert((lang === "vi" ? "Lỗi mở thư mục: " : "Open folder failed: ") + (err instanceof Error ? err.message : String(err)));
                                   }
                                 }}
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors font-medium text-emerald-400 hover:text-white"
                               >
                                 <FolderOpen className="h-3.5 w-3.5 text-emerald-500" />
-                                <span>Open profile location</span>
-                              </button>
-
-                              <div className="border-t border-border/60 my-1"></div>
-
-                              {/* Nhom 4: Chay voi remote port */}
-                              <button
-                                onMouseDown={() => {
-                                  alert("Tính năng Chạy với remote port đang được phát triển.");
-                                  setActiveMenuId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
-                              >
-                                <Settings className="h-3.5 w-3.5" />
-                                <span>Chạy với remote port</span>
+                                <span>{t("menu.open_location")}</span>
                               </button>
                             </div>
                           )}
@@ -1029,12 +1059,12 @@ export function ProfileTable({
             <div className="flex items-center justify-between p-4 border-b border-border/60">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Trash className="h-4 w-4 text-rose-500" />
-                {useTrash ? "Chuyển vào Thùng rác" : "Xác nhận xóa vĩnh viễn"}
+                {useTrash ? t("table.trash_confirm_title_trash") : t("table.trash_confirm_title_perm")}
               </h3>
               <button
                 onClick={() => setDeleteConfirmOpen(false)}
                 className="text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors"
-                title="Đóng"
+                title={t("table.close_btn")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -1044,32 +1074,52 @@ export function ProfileTable({
             <div className="p-5 text-gray-300 text-xs leading-relaxed">
               {deleteTargetIds.length === 1 ? (
                 <div>
-                  Bạn có chắc chắn muốn xóa profile{" "}
-                  <strong className="text-white">
-                    "{profiles.find((p) => p.id === deleteTargetIds[0])?.name}"
-                  </strong>{" "}
-                  không?
+                  {lang === "vi" ? (
+                    <>
+                      Bạn có chắc chắn muốn xóa profile{" "}
+                      <strong className="text-white">
+                        "{profiles.find((p) => p.id === deleteTargetIds[0])?.name}"
+                      </strong>{" "}
+                      không?
+                    </>
+                  ) : (
+                    <>
+                      Are you sure you want to delete profile{" "}
+                      <strong className="text-white">
+                        "{profiles.find((p) => p.id === deleteTargetIds[0])?.name}"
+                      </strong>?
+                    </>
+                  )}
                   {useTrash ? (
                     <p className="mt-2 text-amber-400 font-medium">
-                      ℹ️ Profile sẽ được chuyển vào Thùng rác. Bạn có thể khôi phục lại sau.
+                      ℹ️ {lang === "vi" ? "Profile sẽ được chuyển vào Thùng rác. Bạn có thể khôi phục lại sau." : "Profile will be moved to the Recycle Bin. You can restore it later."}
                     </p>
                   ) : (
                     <p className="mt-2 text-rose-400 font-medium">
-                      ⚠️ Cảnh báo: Thao tác này sẽ xóa vĩnh viễn dữ liệu trình duyệt trên ổ đĩa và không thể hoàn tác.
+                      ⚠️ {lang === "vi" ? "Cảnh báo: Thao tác này sẽ xóa vĩnh viễn dữ liệu trình duyệt trên ổ đĩa và không thể hoàn tác." : "Warning: This will permanently delete all browser profile data from disk and cannot be undone."}
                     </p>
                   )}
                 </div>
               ) : (
                 <div>
-                  Bạn có chắc chắn muốn xóa{" "}
-                  <strong className="text-white">{deleteTargetIds.length} profiles</strong> đã chọn không?
+                  {lang === "vi" ? (
+                    <>
+                      Bạn có chắc chắn muốn xóa{" "}
+                      <strong className="text-white">{deleteTargetIds.length} profiles</strong> đã chọn không?
+                    </>
+                  ) : (
+                    <>
+                      Are you sure you want to delete the{" "}
+                      <strong className="text-white">{deleteTargetIds.length} selected profiles</strong>?
+                    </>
+                  )}
                   {useTrash ? (
                     <p className="mt-2 text-amber-400 font-medium">
-                      ℹ️ Các profile sẽ được chuyển vào Thùng rác. Bạn có thể khôi phục lại sau.
+                      ℹ️ {lang === "vi" ? "Các profile sẽ được chuyển vào Thùng rác. Bạn có thể khôi phục lại sau." : "Profiles will be moved to the Recycle Bin. You can restore them later."}
                     </p>
                   ) : (
                     <p className="mt-2 text-rose-400 font-medium">
-                      ⚠️ Cảnh báo: Thao tác này sẽ xóa vĩnh viễn toàn bộ dữ liệu trình duyệt trên ổ đĩa của các profile này.
+                      ⚠️ {lang === "vi" ? "Cảnh báo: Thao tác này sẽ xóa vĩnh viễn toàn bộ dữ liệu trình duyệt trên ổ đĩa của các profile này." : "Warning: This will permanently delete all browser files from disk for these profiles."}
                     </p>
                   )}
                 </div>
@@ -1082,7 +1132,7 @@ export function ProfileTable({
                 onClick={() => setDeleteConfirmOpen(false)}
                 className="px-4 py-1.5 rounded bg-surface-3 hover:bg-surface-4 border border-border text-gray-300 font-medium transition-colors text-xs"
               >
-                Hủy bỏ
+                {t("form.cancel")}
               </button>
               <button
                 onClick={async () => {
@@ -1093,15 +1143,15 @@ export function ProfileTable({
                   if (idsToDelete.length === 1) {
                     await onDelete(idsToDelete[0]!);
                     showFeedback(useTrash
-                      ? `Đã chuyển profile "${nameToDelete}" vào Thùng rác!`
-                      : `Đã xóa vĩnh viễn profile "${nameToDelete}"!`
+                      ? (lang === "vi" ? `Đã chuyển profile "${nameToDelete}" vào Thùng rác!` : `Moved profile "${nameToDelete}" to Recycle Bin!`)
+                      : (lang === "vi" ? `Đã xóa vĩnh viễn profile "${nameToDelete}"!` : `Permanently deleted profile "${nameToDelete}"!`)
                     );
                   } else {
                     await onBulkDelete(idsToDelete);
                     setSelectedIds([]);
                     showFeedback(useTrash
-                      ? `Đã chuyển ${idsToDelete.length} profile vào Thùng rác!`
-                      : `Đã xóa vĩnh viễn ${idsToDelete.length} profile!`
+                      ? (lang === "vi" ? `Đã chuyển ${idsToDelete.length} profile vào Thùng rác!` : `Moved ${idsToDelete.length} profiles to Recycle Bin!`)
+                      : (lang === "vi" ? `Đã xóa vĩnh viễn ${idsToDelete.length} profile!` : `Permanently deleted ${idsToDelete.length} profiles!`)
                     );
                   }
                 }}
@@ -1111,7 +1161,7 @@ export function ProfileTable({
                     : "bg-rose-600 hover:bg-rose-700 shadow-rose-950/20"
                 }`}
               >
-                {useTrash ? "Chuyển vào Thùng rác" : "Xác nhận xóa vĩnh viễn"}
+                {useTrash ? t("table.trash_confirm_title_trash") : t("table.trash_confirm_title_perm")}
               </button>
             </div>
           </div>
@@ -1124,7 +1174,7 @@ export function ProfileTable({
           profileName={importCookiesTarget.name}
           onSuccess={(count) => {
             setImportCookiesTarget(null);
-            showFeedback(`Đã nhập thành công ${count} cookies!`);
+            showFeedback(lang === "vi" ? `Đã nhập thành công ${count} cookies!` : `Successfully imported ${count} cookies!`);
           }}
           onCancel={() => setImportCookiesTarget(null)}
         />

@@ -762,15 +762,74 @@ async def export_profile_cookies(profile_id: str):
     # Tra ve file JSON tai xuong truc tiep
     import json
     from fastapi.responses import Response
+    from urllib.parse import quote
     
     filename = f"cookies_{profile['name'].replace(' ', '_')}.json"
+    encoded_filename = quote(filename)
     content = json.dumps(cookies, indent=2)
     
     return Response(
         content=content,
         media_type="application/json",
         headers={
-            "Content-Disposition": f"attachment; filename={filename}"
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
+    )
+
+
+@app.post("/api/profiles/bulk-export-cookies")
+async def bulk_export_cookies(req: BulkActionRequest):
+    import io
+    import zipfile
+    import json
+    import datetime
+    from fastapi.responses import Response
+    from urllib.parse import quote
+    
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for pid in req.profile_ids:
+            profile = db.get_profile(pid)
+            if not profile:
+                continue
+                
+            cookies = []
+            if pid in browser_mgr.running:
+                running = browser_mgr.running[pid]
+                try:
+                    cookies = await running.context.cookies()
+                except Exception:
+                    pass
+            else:
+                from cloakbrowser import launch_persistent_context_async
+                try:
+                    context = await launch_persistent_context_async(
+                        user_data_dir=profile["user_data_dir"],
+                        headless=True,
+                        geoip=False,
+                        humanize=False
+                    )
+                    cookies = await context.cookies()
+                    await context.close()
+                except Exception:
+                    pass
+                    
+            file_name = f"cookies_{profile['name'].replace(' ', '_')}.json"
+            file_content = json.dumps(cookies, indent=2)
+            zip_file.writestr(file_name, file_content)
+            
+    zip_content = zip_buffer.getvalue()
+    zip_buffer.close()
+    
+    filename = f"bulk_cookies_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    encoded_filename = quote(filename)
+    
+    return Response(
+        content=zip_content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
         }
     )
 

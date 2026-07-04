@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Save, Loader2 } from "lucide-react";
 import type { BulkCreateData } from "../lib/api";
+import { useLanguage } from "../lib/i18n";
 
 const RESOLUTION_PRESETS: Record<string, { width: number; height: number }> = {
   "1920 × 1080 (Full HD)": { width: 1920, height: 1080 },
@@ -17,6 +18,7 @@ interface BulkCreateDialogProps {
 }
 
 export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
+  const { lang, t } = useLanguage();
   const [count, setCount] = useState(5);
   const [namePattern, setNamePattern] = useState("Profile_[NUM]");
   const [proxiesText, setProxiesText] = useState("");
@@ -34,11 +36,11 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!namePattern.trim()) {
-      setError("Vui lòng điền tên mẫu.");
+      setError(lang === "vi" ? "Vui lòng điền tên mẫu." : "Please fill in the name pattern.");
       return;
     }
     if (count <= 0) {
-      setError("Số lượng phải lớn hơn 0.");
+      setError(lang === "vi" ? "Số lượng phải lớn hơn 0." : "Quantity must be greater than 0.");
       return;
     }
 
@@ -67,7 +69,11 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
       await onSave(payload);
       onCancel();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Tạo hàng loạt thất bại.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Tạo hàng loạt thất bại." : "Failed to bulk create.")
+      );
     } finally {
       setSaving(false);
     }
@@ -78,7 +84,9 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
       <form onSubmit={handleSubmit} className="bg-surface-1 border border-border rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border relative">
-          <h2 className="text-base font-semibold text-white">Tạo Profile Hàng Loạt</h2>
+          <h2 className="text-base font-semibold text-white">
+            {lang === "vi" ? "Tạo Profile Hàng Loạt" : "Bulk Create Profiles"}
+          </h2>
           <div className="flex items-center gap-2 mr-8">
             <button
               type="submit"
@@ -90,10 +98,10 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Tạo hàng loạt</span>
+              <span>{saving ? t("form.saving") : t("table.btn_bulk_new")}</span>
             </button>
           </div>
-          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -110,7 +118,9 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
           <div className="grid grid-cols-2 gap-4">
             {/* Tên mẫu */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-medium">Tên mẫu</label>
+              <label className="block text-gray-400 mb-1.5 font-medium">
+                {lang === "vi" ? "Tên mẫu" : "Name Pattern"}
+              </label>
               <input
                 type="text"
                 value={namePattern}
@@ -120,13 +130,23 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
                 required
               />
               <span className="text-[10px] text-gray-500 mt-1 block">
-                Chữ <code className="text-accent bg-surface-3 px-1 rounded">[NUM]</code> sẽ tự động tăng từ 1.
+                {lang === "vi" ? (
+                  <>
+                    Chữ <code className="text-accent bg-surface-3 px-1 rounded">[NUM]</code> sẽ tự động tăng từ 1.
+                  </>
+                ) : (
+                  <>
+                    The word <code className="text-accent bg-surface-3 px-1 rounded">[NUM]</code> will auto-increment from 1.
+                  </>
+                )}
               </span>
             </div>
 
             {/* Số lượng */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-medium">Số lượng cần tạo</label>
+              <label className="block text-gray-400 mb-1.5 font-medium">
+                {lang === "vi" ? "Số lượng cần tạo" : "Quantity to Create"}
+              </label>
               <input
                 type="number"
                 value={count}
@@ -141,7 +161,9 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
           <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
             {/* Platform */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-medium">Hệ điều hành giả lập</label>
+              <label className="block text-gray-400 mb-1.5 font-medium">
+                {lang === "vi" ? "Hệ điều hành giả lập" : "Emulated OS"}
+              </label>
               <select
                 value={platform}
                 onChange={(e) => setPlatform(e.target.value as any)}
@@ -155,7 +177,9 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
 
             {/* Độ phân giải */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-medium">Màn hình (Resolution)</label>
+              <label className="block text-gray-400 mb-1.5 font-medium">
+                {lang === "vi" ? "Màn hình (Resolution)" : "Screen Resolution"}
+              </label>
               <select
                 value={currentResolution}
                 onChange={(e) => {
@@ -180,8 +204,12 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
           {/* Proxy */}
           <div className="border-t border-border pt-4">
             <label className="block text-gray-400 mb-1.5 font-medium flex items-center justify-between">
-              <span>Danh sách Proxy gán xoay vòng (Không bắt buộc)</span>
-              <span className="text-[10px] text-gray-500 font-normal">(Mỗi dòng một proxy)</span>
+              <span>
+                {lang === "vi" ? "Danh sách Proxy gán xoay vòng (Không bắt buộc)" : "List of Proxy Rotating (Optional)"}
+              </span>
+              <span className="text-[10px] text-gray-500 font-normal">
+                {lang === "vi" ? "(Mỗi dòng một proxy)" : "(One proxy per line)"}
+              </span>
             </label>
             <textarea
               value={proxiesText}
@@ -190,7 +218,10 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
               placeholder="Định dạng: host:port hoặc host:port:user:pass"
             />
             <span className="text-[10px] text-gray-500 mt-1 block">
-              Hệ thống sẽ tự động gán proxy xoay vòng lần lượt từ trên xuống dưới cho các profile được tạo.
+              {lang === "vi"
+                ? "Hệ thống sẽ tự động gán proxy xoay vòng lần lượt từ trên xuống dưới cho các profile được tạo."
+                : "The system will automatically assign proxies sequentially from top to bottom to the created profiles."
+              }
             </span>
           </div>
 
@@ -205,7 +236,9 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
               />
               <div>
                 <span className="font-medium text-white block">Humanize</span>
-                <span className="text-[10px] text-gray-500">Giả lập hành vi cuộn chuột và gõ phím giống con người.</span>
+                <span className="text-[10px] text-gray-500">
+                  {lang === "vi" ? "Giả lập hành vi cuộn chuột và gõ phím giống con người." : "Emulate human-like scrolling and typing behaviors."}
+                </span>
               </div>
             </label>
 
@@ -218,7 +251,9 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
               />
               <div>
                 <span className="font-medium text-white block">Headless</span>
-                <span className="text-[10px] text-gray-500">Chạy ngầm ẩn trình duyệt.</span>
+                <span className="text-[10px] text-gray-500">
+                  {lang === "vi" ? "Chạy ngầm ẩn trình duyệt." : "Run browser hidden in background."}
+                </span>
               </div>
             </label>
 
@@ -231,19 +266,27 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
               />
               <div>
                 <span className="font-medium text-white block">GeoIP</span>
-                <span className="text-[10px] text-gray-500">Cấu hình múi giờ và ngôn ngữ theo IP Proxy.</span>
+                <span className="text-[10px] text-gray-500">
+                  {lang === "vi" ? "Cấu hình múi giờ và ngôn ngữ theo IP Proxy." : "Configure timezone and locale based on Proxy IP."}
+                </span>
               </div>
             </label>
           </div>
 
           {/* Ghi chú */}
           <div className="border-t border-border pt-4">
-            <label className="block text-gray-400 mb-1.5 font-medium">Ghi chú chung</label>
+            <label className="block text-gray-400 mb-1.5 font-medium">
+              {lang === "vi" ? "Ghi chú chung" : "General Notes"}
+            </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="textarea w-full h-16 bg-surface-2 border border-border rounded px-3 py-2 text-white"
-              placeholder="Nhập ghi chú chung áp dụng cho tất cả các profile..."
+              placeholder={
+                lang === "vi"
+                  ? "Nhập ghi chú chung áp dụng cho tất cả các profile..."
+                  : "Enter general notes applied to all profiles..."
+              }
             />
           </div>
         </div>

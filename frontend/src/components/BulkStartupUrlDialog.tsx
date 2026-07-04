@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Save, Loader2 } from "lucide-react";
+import { useLanguage } from "../lib/i18n";
 
 interface BulkStartupUrlDialogProps {
   profileIds: string[];
@@ -8,6 +9,7 @@ interface BulkStartupUrlDialogProps {
 }
 
 export function BulkStartupUrlDialog({ profileIds, onSave, onCancel }: BulkStartupUrlDialogProps) {
+  const { lang, t } = useLanguage();
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +23,11 @@ export function BulkStartupUrlDialog({ profileIds, onSave, onCancel }: BulkStart
       await onSave(profileIds, url.trim());
       onCancel();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Cấu hình URL khởi động thất bại.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Cấu hình URL khởi động thất bại." : "Failed to set startup URL.")
+      );
     } finally {
       setSaving(false);
     }
@@ -32,7 +38,9 @@ export function BulkStartupUrlDialog({ profileIds, onSave, onCancel }: BulkStart
       <form onSubmit={handleSubmit} className="bg-surface-1 border border-border rounded-lg shadow-2xl w-full max-w-md flex flex-col relative animate-scale-up">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2 rounded-t-lg relative">
-          <h2 className="text-sm font-semibold text-white">Đặt URL Khởi Động Hàng Loạt</h2>
+          <h2 className="text-sm font-semibold text-white">
+            {lang === "vi" ? "Đặt URL Khởi Động Hàng Loạt" : "Bulk Set Startup URL"}
+          </h2>
           <div className="flex items-center gap-2 mr-8">
             <button
               type="submit"
@@ -44,10 +52,10 @@ export function BulkStartupUrlDialog({ profileIds, onSave, onCancel }: BulkStart
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Xác nhận</span>
+              <span>{lang === "vi" ? "Xác nhận" : "Confirm"}</span>
             </button>
           </div>
-          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -62,15 +70,23 @@ export function BulkStartupUrlDialog({ profileIds, onSave, onCancel }: BulkStart
         <div className="p-5 space-y-4 text-xs text-gray-300">
           <div>
             <span className="text-[11px] text-gray-400 block mb-3 leading-relaxed">
-              Bạn đang cấu hình URL khởi động tự động cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống nếu muốn xóa URL khởi động cũ.
+              {lang === "vi" ? (
+                <>
+                  Bạn đang cấu hình URL khởi động tự động cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống nếu muốn xóa URL khởi động cũ.
+                </>
+              ) : (
+                <>
+                  You are configuring automatic startup URL for <strong className="text-accent">{profileIds.length}</strong> selected profiles. Leave empty to clear old startup URL.
+                </>
+              )}
             </span>
-            <label className="block text-gray-400 mb-1.5 font-medium">Địa chỉ URL</label>
+            <label className="block text-gray-400 mb-1.5 font-medium">{lang === "vi" ? "Địa chỉ URL" : "URL Address"}</label>
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white font-mono focus:border-accent"
-              placeholder="Ví dụ: https://google.com"
+              placeholder="e.g. https://google.com"
             />
           </div>
         </div>

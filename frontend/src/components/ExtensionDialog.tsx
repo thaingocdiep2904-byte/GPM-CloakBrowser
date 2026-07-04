@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, Puzzle, ToggleLeft, ToggleRight, Trash2, Plus, Upload, Loader2, AlertCircle, Save } from "lucide-react";
 import { api, type Extension, type ProfileExtension } from "../lib/api";
+import { useLanguage } from "../lib/i18n";
 
 interface ExtensionDialogProps {
   profileIds: string[];
@@ -10,13 +11,13 @@ interface ExtensionDialogProps {
 }
 
 export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: ExtensionDialogProps) {
+  const { lang, t } = useLanguage();
   const [profileExtensions, setProfileExtensions] = useState<ProfileExtension[]>([]);
   const [allExtensions, setAllExtensions] = useState<Extension[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
 
   // Load data on mount
   useEffect(() => {
@@ -36,7 +37,11 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
       setProfileExtensions(pExts);
       setAllExtensions(allExts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tải dữ liệu extension.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Không thể tải dữ liệu extension." : "Failed to load extension data.")
+      );
     } finally {
       setLoading(false);
     }
@@ -74,7 +79,11 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
     if (!file) return;
 
     if (!file.name.endsWith(".zip")) {
-      setError("Vui lòng chỉ tải lên file có định dạng nén .zip.");
+      setError(
+        lang === "vi"
+          ? "Vui lòng chỉ tải lên file có định dạng nén .zip."
+          : "Please upload .zip compressed files only."
+      );
       return;
     }
 
@@ -97,7 +106,11 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
         },
       ]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi khi tải lên extension.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Lỗi khi tải lên extension." : "Error uploading extension.")
+      );
     } finally {
       setUploading(false);
     }
@@ -117,12 +130,20 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
       );
       
       if (onSave) {
-        onSave("Đã lưu cấu hình extension thành công!");
+        onSave(
+          lang === "vi"
+            ? "Đã lưu cấu hình extension thành công!"
+            : "Extension configuration saved successfully!"
+        );
       } else {
         onCancel();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi khi lưu cấu hình extension.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Lỗi khi lưu cấu hình extension." : "Error saving extension configuration.")
+      );
     } finally {
       setSaving(false);
     }
@@ -140,9 +161,14 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
           <div className="flex items-center gap-2">
             <Puzzle className="h-5 w-5 text-violet-400" />
             <div>
-              <h2 className="text-sm font-semibold text-white">Quản lý Extension</h2>
+              <h2 className="text-sm font-semibold text-white">
+                {lang === "vi" ? "Quản lý Extension" : "Manage Extensions"}
+              </h2>
               <p className="text-[10px] text-gray-400">
-                {profileIds.length > 1 ? `Đã chọn: ${profileIds.length} profiles` : `Profile: ${profileName}`}
+                {profileIds.length > 1
+                  ? (lang === "vi" ? `Đã chọn: ${profileIds.length} profiles` : `Selected: ${profileIds.length} profiles`)
+                  : (lang === "vi" ? `Profile: ${profileName}` : `Profile: ${profileName}`)
+                }
               </p>
             </div>
           </div>
@@ -157,15 +183,13 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Lưu lại</span>
+              <span>{lang === "vi" ? "Lưu lại" : "Save"}</span>
             </button>
           </div>
-          <button onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-5 w-5" />
           </button>
         </div>
-
-
 
         {/* Error notification */}
         {error && (
@@ -182,7 +206,9 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center py-16 gap-3">
             <Loader2 className="h-8 w-8 text-violet-500 animate-spin" />
-            <span className="text-xs text-gray-400">Đang tải dữ liệu extension...</span>
+            <span className="text-xs text-gray-400">
+              {lang === "vi" ? "Đang tải dữ liệu extension..." : "Loading extension data..."}
+            </span>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs text-gray-300">
@@ -190,11 +216,13 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
             {/* 1. Profile Extensions Section */}
             <div>
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-violet-400 mb-2">
-                Extension đã gán ({profileExtensions.length})
+                {lang === "vi" ? "Extension đã gán" : "Assigned Extensions"} ({profileExtensions.length})
               </h3>
               {profileExtensions.length === 0 ? (
                 <div className="p-4 bg-surface-2/40 border border-border/50 rounded-md text-center text-gray-500 italic">
-                  Chưa có extension nào được gán cho các profile này.
+                  {lang === "vi"
+                    ? "Chưa có extension nào được gán cho các profile này."
+                    : "No extensions assigned to these profiles."}
                 </div>
               ) : (
                 <div className="border border-border/50 rounded-md bg-surface-2/20 divide-y divide-border/40">
@@ -213,7 +241,7 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
                         <button
                           onClick={() => handleToggle(ext.id, ext.is_enabled)}
                           className="text-gray-400 hover:text-white transition-colors"
-                          title={ext.is_enabled ? "Tắt Extension" : "Bật Extension"}
+                          title={ext.is_enabled ? (lang === "vi" ? "Tắt Extension" : "Disable Extension") : (lang === "vi" ? "Bật Extension" : "Enable Extension")}
                         >
                           {ext.is_enabled ? (
                             <ToggleRight className="h-6 w-6 text-emerald-500" />
@@ -226,7 +254,7 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
                         <button
                           onClick={() => handleRemove(ext.id)}
                           className="p-1 hover:bg-rose-950/20 text-gray-500 hover:text-rose-400 rounded transition-all"
-                          title="Gỡ khỏi Profile"
+                          title={lang === "vi" ? "Gỡ khỏi Profile" : "Remove from Profile"}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -240,11 +268,11 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
             {/* 2. Available Extensions in System */}
             <div>
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-2">
-                Kho Extension hệ thống ({availableExtensions.length})
+                {lang === "vi" ? "Kho Extension hệ thống" : "System Extensions Repository"} ({availableExtensions.length})
               </h3>
               {availableExtensions.length === 0 ? (
                 <div className="p-4 bg-surface-2/40 border border-border/50 rounded-md text-center text-gray-500 italic">
-                  Không còn extension nào chưa cài đặt.
+                  {lang === "vi" ? "Không còn extension nào chưa cài đặt." : "No more extensions to install."}
                 </div>
               ) : (
                 <div className="border border-border/50 rounded-md bg-surface-2/20 max-h-40 overflow-y-auto divide-y divide-border/40">
@@ -261,10 +289,10 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
                       <button
                         onClick={() => handleAdd(ext.id)}
                         className="bg-surface-3 hover:bg-emerald-600 border border-border hover:border-emerald-500 text-white p-1 rounded transition-all flex items-center gap-1 text-[10px]"
-                        title="Thêm vào các Profile"
+                        title={lang === "vi" ? "Thêm vào các Profile" : "Add to Profiles"}
                       >
                         <Plus className="h-3 w-3" />
-                        <span>Thêm</span>
+                        <span>{lang === "vi" ? "Thêm" : "Add"}</span>
                       </button>
                     </div>
                   ))}
@@ -275,7 +303,7 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
             {/* 3. Direct Upload Section */}
             <div className="border-t border-border pt-4">
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-amber-500 mb-2">
-                Tải lên Extension mới (.zip)
+                {lang === "vi" ? "Tải lên Extension mới (.zip)" : "Upload New Extension (.zip)"}
               </h3>
               <div className="relative border border-dashed border-border/70 hover:border-amber-500/70 rounded-md p-4 bg-surface-2/10 hover:bg-surface-2/25 transition-all flex flex-col items-center justify-center gap-2 text-center cursor-pointer group">
                 <input
@@ -288,15 +316,24 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
                 {uploading ? (
                   <>
                     <Loader2 className="h-6 w-6 text-amber-500 animate-spin" />
-                    <span className="text-[11px] text-amber-400 font-medium">Đang tải và giải nén extension...</span>
+                    <span className="text-[11px] text-amber-400 font-medium">
+                      {lang === "vi" ? "Đang tải và giải nén extension..." : "Uploading and extracting extension..."}
+                    </span>
                   </>
                 ) : (
                   <>
                     <Upload className="h-6 w-6 text-gray-400 group-hover:text-amber-500 transition-colors" />
                     <div className="text-[11px] text-gray-400">
-                      <span className="text-amber-500 font-semibold group-hover:underline">Nhấp để tải lên</span> file .zip extension
+                      <span className="text-amber-500 font-semibold group-hover:underline">
+                        {lang === "vi" ? "Nhấp để tải lên" : "Click to upload"}
+                      </span>{" "}
+                      {lang === "vi" ? "file .zip extension" : "extension .zip file"}
                     </div>
-                    <span className="text-[9px] text-gray-500">Hệ thống sẽ giải nén và tự động gán vào các profile</span>
+                    <span className="text-[9px] text-gray-500">
+                      {lang === "vi"
+                        ? "Hệ thống sẽ giải nén và tự động gán vào các profile"
+                        : "The system will extract and automatically assign to profiles"}
+                    </span>
                   </>
                 )}
               </div>
@@ -304,8 +341,6 @@ export function ExtensionDialog({ profileIds, profileName, onCancel, onSave }: E
             
           </div>
         )}
-
-
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Save, Loader2 } from "lucide-react";
+import { useLanguage } from "../lib/i18n";
 
 interface BulkBookmarkDialogProps {
   profileIds: string[];
@@ -8,6 +9,7 @@ interface BulkBookmarkDialogProps {
 }
 
 export function BulkBookmarkDialog({ profileIds, onSave, onCancel }: BulkBookmarkDialogProps) {
+  const { lang, t } = useLanguage();
   const [bookmarksText, setBookmarksText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,11 @@ export function BulkBookmarkDialog({ profileIds, onSave, onCancel }: BulkBookmar
       .filter((bm) => bm.url.startsWith("http://") || bm.url.startsWith("https://"));
 
     if (bookmarksText.trim().length > 0 && bookmarks.length === 0) {
-      setError("Vui lòng điền bookmarks đúng định dạng (ví dụ: Google|https://google.com) và bắt đầu bằng http:// hoặc https://");
+      setError(
+        lang === "vi"
+          ? "Vui lòng điền bookmarks đúng định dạng (ví dụ: Google|https://google.com) và bắt đầu bằng http:// hoặc https://"
+          : "Please enter bookmarks in correct format (e.g. Google|https://google.com) starting with http:// or https://"
+      );
       setSaving(false);
       return;
     }
@@ -42,7 +48,11 @@ export function BulkBookmarkDialog({ profileIds, onSave, onCancel }: BulkBookmar
       await onSave(profileIds, bookmarks);
       onCancel();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Cài đặt bookmarks thất bại.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Cài đặt bookmarks thất bại." : "Failed to set bookmarks.")
+      );
     } finally {
       setSaving(false);
     }
@@ -53,7 +63,9 @@ export function BulkBookmarkDialog({ profileIds, onSave, onCancel }: BulkBookmar
       <form onSubmit={handleSubmit} className="bg-surface-1 border border-border rounded-lg shadow-2xl w-full max-w-md flex flex-col relative animate-scale-up">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2 rounded-t-lg relative">
-          <h2 className="text-sm font-semibold text-white">Cài Đặt Bookmarks Hàng Loạt</h2>
+          <h2 className="text-sm font-semibold text-white">
+            {lang === "vi" ? "Cài Đặt Bookmarks Hàng Loạt" : "Bulk Set Bookmarks"}
+          </h2>
           <div className="flex items-center gap-2 mr-8">
             <button
               type="submit"
@@ -65,10 +77,10 @@ export function BulkBookmarkDialog({ profileIds, onSave, onCancel }: BulkBookmar
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Xác nhận</span>
+              <span>{lang === "vi" ? "Xác nhận" : "Confirm"}</span>
             </button>
           </div>
-          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -83,12 +95,22 @@ export function BulkBookmarkDialog({ profileIds, onSave, onCancel }: BulkBookmar
         <div className="p-5 space-y-4 text-xs text-gray-300">
           <div>
             <span className="text-[11px] text-gray-400 block mb-3 leading-relaxed">
-              Bạn đang gán dấu trang (bookmarks) cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống để xóa sạch bookmarks cũ.
+              {lang === "vi" ? (
+                <>
+                  Bạn đang gán dấu trang (bookmarks) cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống để xóa sạch bookmarks cũ.
+                </>
+              ) : (
+                <>
+                  You are assigning bookmarks for <strong className="text-accent">{profileIds.length}</strong> selected profiles. Leave blank to clear old bookmarks.
+                </>
+              )}
             </span>
             
             <label className="block text-gray-400 mb-1.5 font-medium flex items-center justify-between">
-              <span>Danh sách Bookmarks</span>
-              <span className="text-[10px] text-gray-500 font-normal">(Định dạng: Tên|URL)</span>
+              <span>{lang === "vi" ? "Danh sách Bookmarks" : "Bookmarks List"}</span>
+              <span className="text-[10px] text-gray-500 font-normal">
+                {lang === "vi" ? "(Định dạng: Tên|URL)" : "(Format: Name|URL)"}
+              </span>
             </label>
             <textarea
               value={bookmarksText}
@@ -97,7 +119,10 @@ export function BulkBookmarkDialog({ profileIds, onSave, onCancel }: BulkBookmar
               placeholder={`Ví dụ:\nGoogle|https://google.com\nFacebook|https://facebook.com`}
             />
             <span className="text-[10px] text-gray-500 block mt-1.5 leading-normal">
-              Ghi chú: Mỗi dấu trang viết trên một dòng. Dấu gạch đứng <code className="text-accent">|</code> ngăn cách giữa tên hiển thị và địa chỉ link.
+              {lang === "vi"
+                ? "Ghi chú: Mỗi dấu trang viết trên một dòng. Dấu gạch đứng | ngăn cách giữa tên hiển thị và địa chỉ link."
+                : "Note: One bookmark per line. Vertical pipe symbol | separates the display name and the URL address."
+              }
             </span>
           </div>
         </div>

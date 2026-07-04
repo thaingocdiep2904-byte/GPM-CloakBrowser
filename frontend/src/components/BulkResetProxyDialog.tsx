@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Save, Loader2 } from "lucide-react";
+import { useLanguage } from "../lib/i18n";
 
 interface BulkResetProxyDialogProps {
   profileIds: string[];
@@ -8,6 +9,7 @@ interface BulkResetProxyDialogProps {
 }
 
 export function BulkResetProxyDialog({ profileIds, onSave, onCancel }: BulkResetProxyDialogProps) {
+  const { lang, t } = useLanguage();
   const [proxiesText, setProxiesText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,11 @@ export function BulkResetProxyDialog({ profileIds, onSave, onCancel }: BulkReset
       await onSave(profileIds, proxies);
       onCancel();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Thay đổi proxy thất bại.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Thay đổi proxy thất bại." : "Failed to change proxy.")
+      );
     } finally {
       setSaving(false);
     }
@@ -37,7 +43,9 @@ export function BulkResetProxyDialog({ profileIds, onSave, onCancel }: BulkReset
       <form onSubmit={handleSubmit} className="bg-surface-1 border border-border rounded-lg shadow-2xl w-full max-w-md flex flex-col relative animate-scale-up">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2 rounded-t-lg relative">
-          <h2 className="text-sm font-semibold text-white">Thay Đổi Proxy Hàng Loạt</h2>
+          <h2 className="text-sm font-semibold text-white">
+            {lang === "vi" ? "Thay Đổi Proxy Hàng Loạt" : "Bulk Change Proxy"}
+          </h2>
           <div className="flex items-center gap-2 mr-8">
             <button
               type="submit"
@@ -49,10 +57,10 @@ export function BulkResetProxyDialog({ profileIds, onSave, onCancel }: BulkReset
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Xác nhận</span>
+              <span>{lang === "vi" ? "Xác nhận" : "Confirm"}</span>
             </button>
           </div>
-          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -67,11 +75,21 @@ export function BulkResetProxyDialog({ profileIds, onSave, onCancel }: BulkReset
         <div className="p-5 space-y-4 text-xs text-gray-300">
           <div>
             <span className="text-[11px] text-gray-400 block mb-3 leading-relaxed">
-              Bạn đang thay đổi proxy cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống danh sách proxy nếu muốn xóa cấu hình proxy cũ.
+              {lang === "vi" ? (
+                <>
+                  Bạn đang thay đổi proxy cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống danh sách proxy nếu muốn xóa cấu hình proxy cũ.
+                </>
+              ) : (
+                <>
+                  You are changing proxies for <strong className="text-accent">{profileIds.length}</strong> selected profiles. Leave the proxy list blank to remove old proxy configuration.
+                </>
+              )}
             </span>
             <label className="block text-gray-400 mb-1.5 font-medium flex items-center justify-between">
-              <span>Danh sách Proxy mới</span>
-              <span className="text-[10px] text-gray-500 font-normal">(Mỗi dòng một proxy)</span>
+              <span>{lang === "vi" ? "Danh sách Proxy mới" : "New Proxy List"}</span>
+              <span className="text-[10px] text-gray-500 font-normal">
+                {lang === "vi" ? "(Mỗi dòng một proxy)" : "(One proxy per line)"}
+              </span>
             </label>
             <textarea
               value={proxiesText}
@@ -80,7 +98,10 @@ export function BulkResetProxyDialog({ profileIds, onSave, onCancel }: BulkReset
               placeholder="Định dạng: host:port hoặc host:port:user:pass"
             />
             <span className="text-[10px] text-gray-500 block mt-1.5 leading-normal">
-              Hệ thống sẽ gán xoay vòng lần lượt các proxy này cho {profileIds.length} profile đã chọn.
+              {lang === "vi"
+                ? "Hệ thống sẽ gán xoay vòng lần lượt các proxy này cho các profile đã chọn."
+                : "The system will sequentially rotate and assign these proxies to the selected profiles."
+              }
             </span>
           </div>
         </div>

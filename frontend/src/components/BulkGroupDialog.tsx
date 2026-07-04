@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Plus, Save, Loader2 } from "lucide-react";
+import { useLanguage } from "../lib/i18n";
 
 interface BulkGroupDialogProps {
   profileIds: string[];
@@ -19,6 +20,7 @@ const TAG_COLORS = [
 ];
 
 export function BulkGroupDialog({ profileIds, onSave, onCancel }: BulkGroupDialogProps) {
+  const { lang, t } = useLanguage();
   const [tags, setTags] = useState<{ tag: string; color: string | null }[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [tagColor, setTagColor] = useState<string | null>("#6366f1");
@@ -46,7 +48,11 @@ export function BulkGroupDialog({ profileIds, onSave, onCancel }: BulkGroupDialo
       await onSave(profileIds, tags);
       onCancel();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gom nhóm profile thất bại.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Gom nhóm profile thất bại." : "Failed to assign group.")
+      );
     } finally {
       setSaving(false);
     }
@@ -57,7 +63,9 @@ export function BulkGroupDialog({ profileIds, onSave, onCancel }: BulkGroupDialo
       <form onSubmit={handleSubmit} className="bg-surface-1 border border-border rounded-lg shadow-2xl w-full max-w-md flex flex-col relative animate-scale-up">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2 rounded-t-lg relative">
-          <h2 className="text-sm font-semibold text-white">Gom Nhóm Hàng Loạt</h2>
+          <h2 className="text-sm font-semibold text-white">
+            {lang === "vi" ? "Gom Nhóm Hàng Loạt" : "Bulk Assign Groups"}
+          </h2>
           <div className="flex items-center gap-2 mr-8">
             <button
               type="submit"
@@ -69,10 +77,10 @@ export function BulkGroupDialog({ profileIds, onSave, onCancel }: BulkGroupDialo
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Xác nhận</span>
+              <span>{lang === "vi" ? "Xác nhận" : "Confirm"}</span>
             </button>
           </div>
-          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -87,16 +95,24 @@ export function BulkGroupDialog({ profileIds, onSave, onCancel }: BulkGroupDialo
         <div className="p-5 space-y-4 text-xs text-gray-300">
           <div>
             <span className="text-[11px] text-gray-400 block mb-3 leading-relaxed">
-              Bạn đang gom nhóm cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống danh sách nhãn nếu muốn xóa bỏ toàn bộ nhóm cũ của các profile này.
+              {lang === "vi" ? (
+                <>
+                  Bạn đang gom nhóm cho <strong className="text-accent">{profileIds.length}</strong> profile đã chọn. Để trống danh sách nhãn nếu muốn xóa bỏ toàn bộ nhóm cũ của các profile này.
+                </>
+              ) : (
+                <>
+                  You are assigning groups for <strong className="text-accent">{profileIds.length}</strong> selected profiles. Leave the tag list blank to clear all old groups.
+                </>
+              )}
             </span>
             
-            <label className="label">Nhãn (Tags)</label>
+            <label className="label">{lang === "vi" ? "Nhãn (Tags)" : "Tags"}</label>
             <div className="flex gap-2 mb-3">
               <input
                 className="input flex-1 bg-surface-2 border border-border rounded px-3 py-2 text-white"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Ví dụ: Nuôi nick, MMO..."
+                placeholder={lang === "vi" ? "Ví dụ: Nuôi nick, MMO..." : "e.g. Account Farm, MMO..."}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -154,7 +170,7 @@ export function BulkGroupDialog({ profileIds, onSave, onCancel }: BulkGroupDialo
               </div>
             ) : (
               <div className="text-center py-4 border border-dashed border-border rounded text-gray-500">
-                Chưa gán nhãn nào (sẽ xóa sạch nhãn cũ)
+                {lang === "vi" ? "Chưa gán nhãn nào (sẽ xóa sạch nhãn cũ)" : "No tags assigned (will clear old tags)"}
               </div>
             )}
           </div>

@@ -14,10 +14,19 @@ export const translations = {
     menu: {
       profiles: "Quản lý Profile",
       settings: "Cài đặt hệ thống",
-      api: "API & Tự động hóa",
+      api: "API",
       about: "Giới thiệu",
       logout: "Đăng xuất",
-      version: "Phiên bản binary"
+      version: "Phiên bản binary",
+      edit: "Chỉnh sửa",
+      delete: "Xóa",
+      edit_extension: "Sửa Extension",
+      clone: "Nhân bản",
+      import_cookie: "Import cookie",
+      export_cookie: "Export cookie",
+      copy_id: "Copy ID",
+      copy_path: "Copy Path",
+      open_location: "Open profile location"
     },
     // ProfileTable.tsx
     table: {
@@ -34,7 +43,7 @@ export const translations = {
       copy_proxy: "Copy Proxy",
       copy_ua: "Copy UA",
       bulk_proxy: "Kiểm tra proxy",
-      bulk_reset_proxy: "Đặt lại Proxy",
+      bulk_reset_proxy: "Cài đặt Proxy",
       bulk_startup: "Đặt URL khởi động",
       bulk_bookmark: "Đặt Bookmarks",
       bulk_group: "Gom nhóm",
@@ -54,14 +63,30 @@ export const translations = {
       col_action: "Thao tác",
       status_running: "Đang chạy",
       status_stopped: "Đã dừng",
+      status_ready: "Sẵn sàng",
       no_profiles: "Không tìm thấy profile nào phù hợp.",
       confirm_delete_title: "Xóa Profile",
       confirm_delete_desc: "Bạn có chắc chắn muốn xóa {count} profile đã chọn không?",
       confirm_delete_warning: "Các profile này sẽ được chuyển vào thùng rác.",
-      
+
       btn_new: "Thêm mới",
       btn_bulk_new: "Tạo theo số lượng",
       btn_trash: "Thùng rác",
+      filter_group_all: "Nhóm: Tất cả",
+      filter_group: "Nhóm: {group}",
+      sort_newest: "Sắp xếp: Mới nhất",
+      sort_oldest: "Sắp xếp: Cũ nhất",
+      sort_name_asc: "Tên: A-Z",
+      sort_name_desc: "Tên: Z-A",
+      ctrl_a_tip: "Mẹo: Nhấn Ctrl + A để chọn toàn bộ",
+      total_count: "Tổng số: {count} profiles",
+      proxy_checking: "Đang kiểm tra IP máy...",
+      proxy_error: "Lỗi",
+      proxy_conn_error: "Lỗi kết nối",
+      not_run_yet: "Chưa chạy",
+      trash_confirm_title_trash: "Chuyển vào Thùng rác",
+      trash_confirm_title_perm: "Xác nhận xóa vĩnh viễn",
+      close_btn: "Đóng"
     },
     // ProfileForm.tsx
     form: {
@@ -131,7 +156,7 @@ export const translations = {
       title: "Cài đặt hệ thống",
       save: "Lưu cài đặt",
       saving: "Đang lưu...",
-      restart_warning: "Bạn cần khởi động lại ứng dụng khi thay đổi các thông tin về việc lưu trữ Profile (không chứa dấu tiếng Việt)",
+      restart_warning: "Bạn cần khởi động lại ứng dụng khi thay đổi các thông tin về việc lưu trữ Profile (đường dẫn không được chứa kí tự Tiếng Việt)",
       path: "Đường dẫn lưu trữ Profile",
       change: "Thay đổi",
       compression: "Chế độ nén",
@@ -155,7 +180,24 @@ export const translations = {
       extension_default: "Mặc định",
       extension_name: "Tên Extension",
       extension_version: "Phiên bản",
-      extension_action: "Hành động"
+      extension_action: "Hành động",
+      pc_storage: "Trên PC",
+      loading: "Đang tải cài đặt hệ thống...",
+      refresh: "Làm mới",
+      path_empty: "Chưa cấu hình (Click để chọn)",
+      ext_upload_zip: "Vui lòng tải lên file định dạng zip.",
+      ext_confirm_delete: "Bạn có chắc chắn muốn xóa extension này khỏi hệ thống không? Tất cả các profile đang sử dụng sẽ bị gỡ bỏ tiện ích này.",
+      ext_default_title: "Đặt làm extension mặc định cho profile mới",
+      ext_delete_title: "Xóa vĩnh viễn khỏi hệ thống",
+      ext_instruction_1: "* **Extension mặc định:** Các tiện ích được tick chọn ở cột trên sẽ tự động được gán và bật mặc định mỗi khi bạn tạo một profile trình duyệt mới.",
+      ext_instruction_2: "* **Tải lên extension:** Bạn có thể giải nén tiện ích từ Chrome Web Store (dùng công cụ download CRX/ZIP) rồi nén lại thành định dạng .zip thông thường để tải lên đây."
+    },
+    // Time relative
+    time: {
+      seconds_ago: "{count}s trước",
+      minutes_ago: "{count}ph trước",
+      hours_ago: "{count}h trước",
+      days_ago: "{count}ng trước"
     }
   },
   en: {
@@ -163,14 +205,23 @@ export const translations = {
     menu: {
       profiles: "Profiles",
       settings: "Settings",
-      api: "API & Automation",
+      api: "API",
       about: "About",
       logout: "Logout",
-      version: "Binary version"
+      version: "Binary version",
+      edit: "Edit Profile",
+      delete: "Delete Profile",
+      edit_extension: "Edit Extension",
+      clone: "Clone Profile",
+      import_cookie: "Import Cookies",
+      export_cookie: "Export Cookies",
+      copy_id: "Copy ID",
+      copy_path: "Copy Path",
+      open_location: "Open profile location"
     },
     // ProfileTable.tsx
     table: {
-      search_placeholder: "Search profile (name, proxy, notes)...",
+      search_placeholder: "Search profiles (name, proxy, notes)...",
       selected_count: "{count} profiles selected",
       open: "Open",
       close: "Close",
@@ -183,7 +234,7 @@ export const translations = {
       copy_proxy: "Copy Proxy",
       copy_ua: "Copy UA",
       bulk_proxy: "Check Proxy",
-      bulk_reset_proxy: "Reset Proxy",
+      bulk_reset_proxy: "Set Proxy",
       bulk_startup: "Set Startup URL",
       bulk_bookmark: "Set Bookmarks",
       bulk_group: "Set Group",
@@ -203,14 +254,30 @@ export const translations = {
       col_action: "Actions",
       status_running: "Running",
       status_stopped: "Stopped",
+      status_ready: "Ready",
       no_profiles: "No profiles found.",
       confirm_delete_title: "Delete Profile",
       confirm_delete_desc: "Are you sure you want to delete {count} selected profiles?",
       confirm_delete_warning: "These profiles will be moved to the recycle bin.",
-      
+
       btn_new: "Create New",
       btn_bulk_new: "Bulk Create",
       btn_trash: "Recycle Bin",
+      filter_group_all: "Group: All",
+      filter_group: "Group: {group}",
+      sort_newest: "Sort: Newest",
+      sort_oldest: "Sort: Oldest",
+      sort_name_asc: "Name: A-Z",
+      sort_name_desc: "Name: Z-A",
+      ctrl_a_tip: "Tip: Press Ctrl + A to select all",
+      total_count: "Total: {count} profiles",
+      proxy_checking: "Checking proxy IP...",
+      proxy_error: "Error",
+      proxy_conn_error: "Connection Error",
+      not_run_yet: "Never run",
+      trash_confirm_title_trash: "Move to Recycle Bin",
+      trash_confirm_title_perm: "Permanently Delete",
+      close_btn: "Close"
     },
     // ProfileForm.tsx
     form: {
@@ -280,7 +347,7 @@ export const translations = {
       title: "System Settings",
       save: "Save Settings",
       saving: "Saving...",
-      restart_warning: "You need to restart the application when changing the Profile storage path",
+      restart_warning: "You need to restart the application when changing the Profile storage path (the path must not contain Vietnamese characters)",
       path: "Profile Storage Directory",
       change: "Change Path",
       compression: "Compression Mode",
@@ -304,7 +371,24 @@ export const translations = {
       extension_default: "Default",
       extension_name: "Extension Name",
       extension_version: "Version",
-      extension_action: "Actions"
+      extension_action: "Actions",
+      pc_storage: "On PC",
+      loading: "Loading system settings...",
+      refresh: "Refresh",
+      path_empty: "Not configured (Click to select)",
+      ext_upload_zip: "Please upload a ZIP file.",
+      ext_confirm_delete: "Are you sure you want to delete this extension? It will be removed from all profiles.",
+      ext_default_title: "Set as default extension for new profiles",
+      ext_delete_title: "Permanently delete from system",
+      ext_instruction_1: "* **Default Extensions:** Ticked extensions will automatically be assigned and enabled when creating a new browser profile.",
+      ext_instruction_2: "* **Upload Extension:** You can extract an extension from Chrome Web Store (using CRX/ZIP download tools) then zip it normally to upload here."
+    },
+    // Time relative
+    time: {
+      seconds_ago: "{count}s ago",
+      minutes_ago: "{count}m ago",
+      hours_ago: "{count}h ago",
+      days_ago: "{count}d ago"
     }
   }
 };
@@ -347,7 +431,7 @@ export const i18n = {
         break;
       }
     }
-    
+
     let result = typeof value === "string" ? value : key;
     if (replacements) {
       Object.entries(replacements).forEach(([k, v]) => {

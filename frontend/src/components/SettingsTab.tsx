@@ -8,7 +8,7 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab({ showFeedback }: SettingsTabProps) {
-  const { t, setLang } = useLanguage();
+  const { lang, t, setLang } = useLanguage();
   const [settings, setSettings] = useState<AppSettings>({
     profile_path: "",
     compression_mode: "default",
@@ -20,7 +20,6 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
     auto_clear_cache: true,
     auto_resize_window: false,
     no_trash: false,
-
     default_extensions: "[]",
     shared_extensions: "[]",
     auto_update_cloakbrowser: false,
@@ -78,7 +77,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith(".zip")) {
-      setExtError("Vui lòng tải lên file định dạng zip.");
+      setExtError(lang === "vi" ? "Vui lòng tải lên file định dạng zip." : "Please upload a zip format file.");
       return;
     }
     setUploadingExt(true);
@@ -87,14 +86,25 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
       const newExt = await api.uploadExtension(file, true);
       setExtensions((prev: Extension[]) => [...prev, newExt]);
     } catch (err) {
-      setExtError(err instanceof Error ? err.message : "Tải lên thất bại.");
+      setExtError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Tải lên thất bại." : "Upload failed.")
+      );
     } finally {
       setUploadingExt(false);
     }
   };
 
   const handleDeleteExt = async (extId: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa extension này khỏi hệ thống không? Tất cả các profile đang sử dụng sẽ bị gỡ bỏ tiện ích này.")) return;
+    if (
+      !confirm(
+        lang === "vi"
+          ? "Bạn có chắc chắn muốn xóa extension này khỏi hệ thống không? Tất cả các profile đang sử dụng sẽ bị gỡ bỏ tiện ích này."
+          : "Are you sure you want to delete this extension from the system? All profiles using it will have this extension removed."
+      )
+    )
+      return;
     try {
       await api.deleteExtension(extId);
       setExtensions((prev: Extension[]) => prev.filter((e: Extension) => e.id !== extId));
@@ -107,7 +117,11 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
         return updated;
       });
     } catch (err) {
-      setExtError(err instanceof Error ? err.message : "Xóa thất bại.");
+      setExtError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Xóa thất bại." : "Delete failed.")
+      );
     }
   };
 
@@ -142,7 +156,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
         setSettings((prev) => ({ ...prev, [field]: res.path as string }));
       }
     } catch (err) {
-      alert("Không thể chọn thư mục: " + (err instanceof Error ? err.message : String(err)));
+      alert((lang === "vi" ? "Không thể chọn thư mục: " : "Cannot select folder: ") + (err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -165,12 +179,12 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
     }
   };
 
-
-
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center p-8 bg-surface-0">
-        <div className="text-gray-400 text-sm">Đang tải cài đặt hệ thống...</div>
+        <div className="text-gray-400 text-sm">
+          {lang === "vi" ? "Đang tải cài đặt hệ thống..." : "Loading system settings..."}
+        </div>
       </div>
     );
   }
@@ -179,7 +193,9 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
     <div className="flex-1 bg-surface-0 overflow-y-auto p-6 text-gray-200">
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
-        <h1 className="text-xl font-bold text-white tracking-wide">Cài đặt hệ thống</h1>
+        <h1 className="text-xl font-bold text-white tracking-wide">
+          {lang === "vi" ? "Cài đặt hệ thống" : "System Settings"}
+        </h1>
         <div className="flex items-center gap-3">
           <button
             onClick={handleSave}
@@ -191,48 +207,61 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
             ) : (
               <Save className="h-3.5 w-3.5" />
             )}
-            <span>{saving ? "Đang lưu..." : "Lưu cài đặt"}</span>
+            <span>
+              {saving
+                ? (lang === "vi" ? "Đang lưu..." : "Saving...")
+                : (lang === "vi" ? "Lưu cài đặt" : "Save Settings")
+              }
+            </span>
           </button>
 
           <button
             onClick={fetchSettings}
             className="p-1.5 bg-surface-2 hover:bg-surface-3 border border-border rounded text-gray-400 hover:text-white transition-colors"
-            title="Làm mới"
+            title={lang === "vi" ? "Làm mới" : "Refresh"}
           >
             <RotateCw className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-
       {/* Warning Text */}
       <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-500/80 p-3 rounded text-xs mb-6 leading-relaxed">
         <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-        <span>Bạn cần khởi động lại ứng dụng khi thay đổi các thông tin về việc lưu trữ Profile (đường dẫn không được chứa kí tự Tiếng Việt)</span>
+        <span>
+          {lang === "vi"
+            ? "Bạn cần khởi động lại ứng dụng khi thay đổi các thông tin về việc lưu trữ Profile (đường dẫn không được chứa kí tự Tiếng Việt)"
+            : "You need to restart the application when changing Profile storage path (the path must not contain Unicode/special characters)"
+          }
+        </span>
       </div>
 
       <div className="space-y-8 max-w-4xl">
         {/* Section 1: Storage Path */}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-gray-400 w-24">Trên PC</span>
+            <span className="text-xs font-semibold text-gray-400 w-24">
+              {lang === "vi" ? "Trên PC" : "On PC"}
+            </span>
             <button
               onClick={() => handleSelectFolder("profile_path")}
               className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border text-xs rounded transition-colors"
             >
-              Thay đổi
+              {lang === "vi" ? "Thay đổi" : "Change"}
             </button>
             <span
               onClick={() => handleSelectFolder("profile_path")}
               className="text-xs text-gray-300 font-mono bg-surface-1 hover:bg-surface-2 border border-border/40 hover:border-accent/50 px-2 py-1.5 rounded transition-all cursor-pointer select-all"
-              title="Click để thay đổi thư mục lưu trữ profile"
+              title={lang === "vi" ? "Click để thay đổi thư mục lưu trữ profile" : "Click to change profile storage directory"}
             >
-              {settings.profile_path || "Chưa cấu hình (Click để chọn)"}
+              {settings.profile_path || (lang === "vi" ? "Chưa cấu hình (Click để chọn)" : "Not configured (Click to select)")}
             </span>
           </div>
 
           <div className="flex items-start gap-3">
-            <span className="text-xs font-semibold text-gray-400 w-24 mt-1">Chế độ nén</span>
+            <span className="text-xs font-semibold text-gray-400 w-24 mt-1">
+              {lang === "vi" ? "Chế độ nén" : "Compression Mode"}
+            </span>
             <div className="space-y-2">
               <div className="flex items-center gap-6 text-xs">
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -243,7 +272,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                     onChange={() => setSettings((prev) => ({ ...prev, compression_mode: "default" }))}
                     className="accent-primary"
                   />
-                  <span>Mặc định</span>
+                  <span>{lang === "vi" ? "Mặc định" : "Default"}</span>
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -257,7 +286,10 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                 </label>
               </div>
               <p className="text-[11px] text-gray-500 max-w-xl leading-relaxed">
-                Trình nén được sử dụng khi Import / Export / Backup / Restore và nén profile khi đẩy lên cloud nếu sử dụng. 7Z được đề xuất là nhanh và ổn định hơn trình nén mặc định của Windows
+                {lang === "vi"
+                  ? "Trình nén được sử dụng khi Import / Export / Backup / Restore và nén profile khi đẩy lên cloud nếu sử dụng. 7Z được đề xuất là nhanh và ổn định hơn trình nén mặc định của Windows"
+                  : "Compression mode used for Import / Export / Backup / Restore and cloud backup. 7Z is recommended for faster and more stable compression than the default Windows zip compression"
+                }
               </p>
             </div>
           </div>
@@ -265,7 +297,9 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
 
         {/* Section 2: General settings */}
         <div className="border-t border-border/60 pt-6 space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">Cài đặt chung</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+            {lang === "vi" ? "Cài đặt chung" : "General Settings"}
+          </h2>
 
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-gray-400 w-24">{t("settings_tab.language")}</span>
@@ -297,14 +331,18 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
               >
                 <option value="dark">Dark</option>
               </select>
-              <span className="text-[11px] text-gray-500">Chưa hỗ trợ giao diện Sáng (Light)</span>
+              <span className="text-[11px] text-gray-500">
+                {lang === "vi" ? "Chưa hỗ trợ giao diện Sáng (Light)" : "Light theme is not supported yet"}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Section 3: Browser settings */}
         <div className="border-t border-border/60 pt-6 space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">Trình duyệt</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+            {lang === "vi" ? "Trình duyệt" : "Browser"}
+          </h2>
 
           <div className="space-y-2">
             <label className="flex items-center gap-2 cursor-pointer text-xs">
@@ -314,7 +352,9 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                 onChange={(e) => setSettings((prev) => ({ ...prev, reopen_tabs: e.target.checked }))}
                 className="rounded border-border bg-surface-2 accent-primary h-4 w-4"
               />
-              <span>Mở lại các tab đang hoạt động ở phiên trước</span>
+              <span>
+                {lang === "vi" ? "Mở lại các tab đang hoạt động ở phiên trước" : "Reopen tabs active from previous session"}
+              </span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer text-xs">
@@ -324,7 +364,9 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                 onChange={(e) => setSettings((prev) => ({ ...prev, auto_clear_cache: e.target.checked }))}
                 className="rounded border-border bg-surface-2 accent-primary h-4 w-4"
               />
-              <span>Tự động xóa cache khi đóng</span>
+              <span>
+                {lang === "vi" ? "Tự động xóa cache khi đóng" : "Auto clear cache when closed"}
+              </span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer text-xs">
@@ -334,7 +376,9 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                 onChange={(e) => setSettings((prev) => ({ ...prev, auto_resize_window: e.target.checked }))}
                 className="rounded border-border bg-surface-2 accent-primary h-4 w-4"
               />
-              <span>Tự động thay đổi kích thước cửa sổ theo cài đặt profile</span>
+              <span>
+                {lang === "vi" ? "Tự động thay đổi kích thước cửa sổ theo cài đặt profile" : "Auto resize window according to profile settings"}
+              </span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer text-xs">
@@ -344,7 +388,9 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                 onChange={(e) => setSettings((prev) => ({ ...prev, no_trash: !e.target.checked }))}
                 className="rounded border-border bg-surface-2 accent-primary h-4 w-4"
               />
-              <span>Sử dụng chế độ thùng rác profile</span>
+              <span>
+                {lang === "vi" ? "Sử dụng chế độ thùng rác profile" : "Use profile recycle bin mode"}
+              </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-xs">
               <input
@@ -353,17 +399,21 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                 onChange={(e) => setSettings((prev) => ({ ...prev, auto_update_cloakbrowser: e.target.checked }))}
                 className="rounded border-border bg-surface-2 accent-primary h-4 w-4"
               />
-              <span>Tự động cập nhật phiên bản CloakBrowser khi khởi động</span>
+              <span>
+                {lang === "vi" ? "Tự động cập nhật phiên bản CloakBrowser khi khởi động" : "Auto update CloakBrowser version on startup"}
+              </span>
             </label>
           </div>
 
           <div className="flex items-center gap-3 pt-2">
-            <span className="text-xs font-semibold text-gray-400 w-36">Thông số profile mặc định</span>
+            <span className="text-xs font-semibold text-gray-400 w-36">
+              {lang === "vi" ? "Thông số profile mặc định" : "Default Profile Settings"}
+            </span>
             <button
-              onClick={() => alert("Tính năng chỉnh sửa cấu hình vân tay mặc định đang được tối ưu hóa.")}
+              onClick={() => alert(lang === "vi" ? "Tính năng chỉnh sửa cấu hình vân tay mặc định đang được tối ưu hóa." : "Feature for editing default fingerprint configuration is under optimization.")}
               className="px-3 py-1 bg-surface-2 hover:bg-surface-3 border border-border text-xs rounded transition-colors"
             >
-              Chỉnh sửa
+              {lang === "vi" ? "Chỉnh sửa" : "Edit"}
             </button>
           </div>
         </div>
@@ -371,7 +421,9 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
         {/* Section 4: Extensions */}
         <div className="border-t border-border/60 pt-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">Kho Extension Hệ Thống</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              {lang === "vi" ? "Kho Extension Hệ Thống" : "System Extensions Repository"}
+            </h2>
             
             {/* Upload Button */}
             <div className="relative overflow-hidden cursor-pointer bg-violet-600 hover:bg-violet-700 text-white font-medium text-xs py-1.5 px-3 rounded flex items-center gap-1.5 transition-all select-none">
@@ -385,12 +437,12 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
               {uploadingExt ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  <span>Đang cài đặt...</span>
+                  <span>{lang === "vi" ? "Đang cài đặt..." : "Installing..."}</span>
                 </>
               ) : (
                 <>
                   <Upload className="h-3.5 w-3.5" />
-                  <span>Thêm Extension (.zip)</span>
+                  <span>{lang === "vi" ? "Thêm Extension (.zip)" : "Add Extension (.zip)"}</span>
                 </>
               )}
             </div>
@@ -405,22 +457,25 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
           {loadingExts ? (
             <div className="flex items-center justify-center py-8 gap-2 text-xs text-gray-400">
               <Loader2 className="h-4 w-4 text-violet-500 animate-spin" />
-              <span>Đang tải danh sách tiện ích...</span>
+              <span>{lang === "vi" ? "Đang tải danh sách tiện ích..." : "Loading extensions list..."}</span>
             </div>
           ) : extensions.length === 0 ? (
             <div className="p-4 bg-surface-2/40 border border-border/50 rounded-md text-center text-gray-500 italic text-xs">
-              Chưa có extension nào trong hệ thống. Hãy tải lên file .zip để bắt đầu.
+              {lang === "vi"
+                ? "Chưa có extension nào trong hệ thống. Hãy tải lên file .zip để bắt đầu."
+                : "No extensions in system yet. Please upload a .zip file to start."
+              }
             </div>
           ) : (
             <div className="border border-border/50 rounded-md bg-surface-2/20 divide-y divide-border/40 text-xs">
               {/* Header hàng */}
               <div className="flex items-center justify-between p-2.5 bg-surface-2/50 text-[10px] font-bold uppercase tracking-wider text-gray-400">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-16 text-center">Mặc định</span>
-                  <span>Tên Extension</span>
+                  <span className="w-16 text-center">{lang === "vi" ? "Mặc định" : "Default"}</span>
+                  <span>{lang === "vi" ? "Tên Extension" : "Extension Name"}</span>
                 </div>
-                <div className="pr-4">Phiên bản</div>
-                <div className="pr-4">Hành động</div>
+                <div className="pr-4">{lang === "vi" ? "Phiên bản" : "Version"}</div>
+                <div className="pr-4">{lang === "vi" ? "Hành động" : "Actions"}</div>
               </div>
 
               {extensions.map((ext: Extension) => {
@@ -435,7 +490,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                           checked={isDefault}
                           onChange={() => handleToggleDefaultExt(ext.id)}
                           className="h-3.5 w-3.5 rounded border-border bg-surface-2 text-violet-600 focus:ring-violet-500/40"
-                          title="Đặt làm extension mặc định cho profile mới"
+                          title={lang === "vi" ? "Đặt làm extension mặc định cho profile mới" : "Set as default extension for new profiles"}
                         />
                       </div>
 
@@ -456,7 +511,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                       <button
                         onClick={() => handleDeleteExt(ext.id)}
                         className="p-1 hover:bg-rose-950/20 text-gray-500 hover:text-rose-400 rounded transition-all"
-                        title="Xóa vĩnh viễn khỏi hệ thống"
+                        title={lang === "vi" ? "Xóa vĩnh viễn khỏi hệ thống" : "Permanently delete from system"}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -467,12 +522,20 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
             </div>
           )}
 
-          <p className="text-[10px] text-gray-500 leading-relaxed bg-surface-1/40 p-2.5 rounded border border-border/30">
-            * <strong>Extension mặc định:</strong> Các tiện ích được tick chọn ở cột trên sẽ tự động được gán và bật mặc định mỗi khi bạn tạo một profile trình duyệt mới.<br />
-            * <strong>Tải lên extension:</strong> Bạn có thể giải nén tiện ích từ Chrome Web Store (dùng công cụ download CRX/ZIP) rồi nén lại thành định dạng .zip thông thường để tải lên đây.
-          </p>
+          <div className="text-[10px] text-gray-500 leading-relaxed bg-surface-1/40 p-2.5 rounded border border-border/30">
+            {lang === "vi" ? (
+              <>
+                * <strong>Extension mặc định:</strong> Các tiện ích được tick chọn ở cột trên sẽ tự động được gán và bật mặc định mỗi khi bạn tạo một profile trình duyệt mới.<br />
+                * <strong>Tải lên extension:</strong> Bạn có thể giải nén tiện ích từ Chrome Web Store (dùng công cụ download CRX/ZIP) rồi nén lại thành định dạng .zip thông thường để tải lên đây.
+              </>
+            ) : (
+              <>
+                * <strong>Default Extensions:</strong> Checked extensions will be automatically assigned and enabled by default for new browser profiles.<br />
+                * <strong>Upload Extension:</strong> You can download extension files from Chrome Web Store (using a CRX/ZIP downloader), and pack them into a standard .zip format to upload here.
+              </>
+            )}
+          </div>
         </div>
-
 
       </div>
     </div>

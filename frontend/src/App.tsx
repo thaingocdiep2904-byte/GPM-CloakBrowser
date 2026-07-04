@@ -100,7 +100,7 @@ interface AppContentProps {
 }
 
 function AppContent({ authRequired, onLogout }: AppContentProps) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const { profiles, loading, error, refresh, create, update, remove, launch, stop, bulkLaunch, bulkStop, bulkDelete, bulkCreate } = useProfiles();
   const [activeTab, setActiveTab] = useState<Tab>("profiles");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -140,51 +140,51 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
   const handleBulkStartupUrl = useCallback(async (ids: string[], url: string) => {
     await api.bulkSetStartupUrl(ids, url);
     await refresh();
-    showFeedback(`Đã thiết lập URL khởi động cho ${ids.length} profiles thành công!`);
-  }, [refresh, showFeedback]);
+    showFeedback(lang === "vi" ? `Đã thiết lập URL khởi động cho ${ids.length} profile thành công!` : `Successfully set startup URL for ${ids.length} profiles!`);
+  }, [refresh, showFeedback, lang]);
 
   const handleBulkResetProxy = useCallback(async (ids: string[], proxies: string[]) => {
     await api.bulkResetProxy(ids, proxies);
     await refresh();
-    showFeedback(`Đã cập nhật proxy cho ${ids.length} profiles thành công!`);
-  }, [refresh, showFeedback]);
+    showFeedback(lang === "vi" ? `Đã cập nhật proxy cho ${ids.length} profile thành công!` : `Successfully updated proxy for ${ids.length} profiles!`);
+  }, [refresh, showFeedback, lang]);
 
   const handleBulkGroup = useCallback(async (ids: string[], tags: { tag: string; color: string | null }[]) => {
     await api.bulkSetGroup(ids, tags);
     await refresh();
-    showFeedback(`Đã gom nhóm cho ${ids.length} profiles thành công!`);
-  }, [refresh, showFeedback]);
+    showFeedback(lang === "vi" ? `Đã gom nhóm cho ${ids.length} profile thành công!` : `Successfully assigned group for ${ids.length} profiles!`);
+  }, [refresh, showFeedback, lang]);
 
   const handleBulkCacheClear = useCallback(async (ids: string[]) => {
     await api.bulkClearCache(ids);
     await refresh();
-    showFeedback(`Đã xóa cache cho ${ids.length} profiles thành công!`);
-  }, [refresh, showFeedback]);
+    showFeedback(lang === "vi" ? `Đã xóa cache cho ${ids.length} profile thành công!` : `Successfully cleared cache for ${ids.length} profiles!`);
+  }, [refresh, showFeedback, lang]);
 
   const handleBulkBookmark = useCallback(async (ids: string[], bookmarks: { name: string; url: string }[]) => {
     await api.bulkSetBookmark(ids, bookmarks);
     await refresh();
-    showFeedback(`Đã cập nhật dấu trang cho ${ids.length} profiles thành công!`);
-  }, [refresh, showFeedback]);
+    showFeedback(lang === "vi" ? `Đã cập nhật dấu trang cho ${ids.length} profile thành công!` : `Successfully updated bookmarks for ${ids.length} profiles!`);
+  }, [refresh, showFeedback, lang]);
 
   const handleBulkImport = useCallback(async (list: { name: string; proxy?: string; notes?: string }[]) => {
     await api.bulkImport(list);
     await refresh();
-    showFeedback(`Đã nhập thành công ${list.length} profiles!`);
-  }, [refresh, showFeedback]);
+    showFeedback(lang === "vi" ? `Đã nhập thành công ${list.length} profile!` : `Successfully imported ${list.length} profiles!`);
+  }, [refresh, showFeedback, lang]);
 
   const handleArrangeWindows = useCallback(async (ids: string[], layoutType: "grid" | "cascade") => {
     try {
       const res = await api.arrangeProfiles(ids, layoutType);
       if (res.success_count === 0 && res.failed_count === 0) {
-        alert("Không có cửa sổ trình duyệt nào đang chạy để sắp xếp.");
+        alert(lang === "vi" ? "Không có cửa sổ trình duyệt nào đang chạy để sắp xếp." : "No running browser windows to arrange.");
       } else {
-        showFeedback(`Đã sắp xếp xong: ${res.success_count} thành công, ${res.failed_count} thất bại.`);
+        showFeedback(lang === "vi" ? `Đã sắp xếp xong: ${res.success_count} thành công, ${res.failed_count} thất bại.` : `Arranged: ${res.success_count} success, ${res.failed_count} failed.`);
       }
     } catch (err) {
-      alert("Lỗi sắp xếp cửa sổ: " + (err instanceof Error ? err.message : String(err)));
+      alert((lang === "vi" ? "Lỗi sắp xếp cửa sổ: " : "Window arrangement error: ") + (err instanceof Error ? err.message : String(err)));
     }
-  }, [showFeedback]);
+  }, [showFeedback, lang]);
 
   const triggerBulkStartupUrl = useCallback((ids: string[]) => {
     setBulkTargetIds(ids);
@@ -240,9 +240,9 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
       setSelectedId(null);
       setView("empty");
       await refresh();
-      showFeedback("Đã tạo Profile thành công!");
+      showFeedback(lang === "vi" ? "Đã tạo Profile thành công!" : "Profile created successfully!");
     }
-  }, [create, refresh, showFeedback]);
+  }, [create, refresh, showFeedback, lang]);
 
   const handleUpdate = useCallback(async (data: ProfileCreateData) => {
     if (!selectedId) return;
@@ -251,25 +251,25 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
       setSelectedId(null);
       setView("empty");
       await refresh();
-      showFeedback("Đã lưu cấu hình Profile thành công!");
+      showFeedback(lang === "vi" ? "Đã lưu cấu hình Profile thành công!" : "Profile configuration saved successfully!");
     }
-  }, [selectedId, update, refresh, showFeedback]);
+  }, [selectedId, update, refresh, showFeedback, lang]);
 
   const handleClone = useCallback(async (id: string) => {
     try {
       await api.cloneProfile(id);
       await refresh();
-      showFeedback("Nhân bản Profile thành công!");
+      showFeedback(lang === "vi" ? "Nhân bản Profile thành công!" : "Profile cloned successfully!");
     } catch (err) {
-      alert("Lỗi nhân bản profile: " + (err instanceof Error ? err.message : String(err)));
+      alert((lang === "vi" ? "Lỗi nhân bản profile: " : "Profile clone failed: ") + (err instanceof Error ? err.message : String(err)));
     }
-  }, [refresh, showFeedback]);
+  }, [refresh, showFeedback, lang]);
 
   const handleBulkCreate = useCallback(async (data: any) => {
     await bulkCreate(data);
     setActiveBulkModal(null);
-    showFeedback(`Đã tạo thành công ${data.count || 1} profiles!`);
-  }, [bulkCreate, showFeedback]);
+    showFeedback(lang === "vi" ? `Đã tạo thành công ${data.count || 1} profile!` : `Successfully created ${data.count || 1} profiles!`);
+  }, [bulkCreate, showFeedback, lang]);
 
   const handleDelete = useCallback(async () => {
     if (!selectedId) return;

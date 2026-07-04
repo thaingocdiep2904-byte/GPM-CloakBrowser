@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, Upload, FileText, Save, Loader2 } from "lucide-react";
+import { useLanguage } from "../lib/i18n";
 
 interface BulkImportDialogProps {
   onImport: (profiles: { name: string; proxy?: string; notes?: string }[]) => Promise<any>;
@@ -7,6 +8,7 @@ interface BulkImportDialogProps {
 }
 
 export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) {
+  const { lang, t } = useLanguage();
   const [file, setFile] = useState<File | null>(null);
   const [csvPreview, setCsvPreview] = useState<{ name: string; proxy: string; notes: string }[]>([]);
   const [saving, setSaving] = useState(false);
@@ -26,7 +28,7 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
         const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
         
         if (lines.length <= 1) {
-          setError("Tệp tin trống hoặc chỉ chứa tiêu đề.");
+          setError(lang === "vi" ? "Tệp tin trống hoặc chỉ chứa tiêu đề." : "The file is empty or only contains headers.");
           return;
         }
 
@@ -34,7 +36,6 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
         // Bỏ qua dòng tiêu đề thứ nhất, parse từ dòng 2
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i] || "";
-          // Phân tích CSV đơn giản (tách dấu phẩy, xử lý dấu ngoặc kép cơ bản)
           const parts = line.split(",").map(part => {
             let clean = part.trim();
             if (clean.startsWith('"') && clean.endsWith('"')) {
@@ -54,7 +55,7 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
 
         setCsvPreview(parsed.slice(0, 10)); // Xem trước tối đa 10 dòng
       } catch (err) {
-        setError("Lỗi phân tích cú pháp tệp CSV.");
+        setError(lang === "vi" ? "Lỗi phân tích cú pháp tệp CSV." : "Failed to parse CSV file.");
       }
     };
     reader.readAsText(selectedFile, "UTF-8");
@@ -63,7 +64,7 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      setError("Vui lòng chọn tệp tin CSV.");
+      setError(lang === "vi" ? "Vui lòng chọn tệp tin CSV." : "Please select a CSV file.");
       return;
     }
 
@@ -97,7 +98,7 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
         }
 
         if (listToImport.length === 0) {
-          setError("Không tìm thấy profile hợp lệ để nhập.");
+          setError(lang === "vi" ? "Không tìm thấy profile hợp lệ để nhập." : "No valid profiles found to import.");
           setSaving(false);
           return;
         }
@@ -105,7 +106,11 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
         await onImport(listToImport);
         onCancel();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Nhập hàng loạt thất bại.");
+        setError(
+          err instanceof Error
+            ? err.message
+            : (lang === "vi" ? "Nhập hàng loạt thất bại." : "Failed to bulk import.")
+        );
       } finally {
         setSaving(false);
       }
@@ -120,7 +125,7 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2 rounded-t-lg relative">
           <h2 className="text-sm font-semibold text-white flex items-center gap-1.5">
             <Upload className="h-4 w-4 text-emerald-500" />
-            <span>Nhập Profile Từ File Excel/CSV</span>
+            <span>{lang === "vi" ? "Nhập Profile Từ File Excel/CSV" : "Import Profiles From Excel/CSV"}</span>
           </h2>
           <div className="flex items-center gap-2 mr-8">
             <button
@@ -135,10 +140,10 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Xác nhận nhập</span>
+              <span>{lang === "vi" ? "Xác nhận nhập" : "Confirm Import"}</span>
             </button>
           </div>
-          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -153,34 +158,51 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
         <div className="p-5 space-y-4 text-xs text-gray-300">
           <div>
             <span className="text-[11px] text-gray-400 block mb-3 leading-relaxed">
-              Tải lên file CSV được xuất từ Excel để nhập hàng loạt profile. Tệp tin của bạn cần có định dạng sau:
-              <code className="block bg-surface-2 p-2 border border-border rounded font-mono text-[10px] mt-1 text-accent whitespace-pre">
-                Tên profile,Proxy,Ghi chú{"\n"}
-                Profile_Demo_1,113.161.44.15:8080,Ghi chú tài khoản 1{"\n"}
-                Profile_Demo_2,113.161.44.16:8080:user:pass,Ghi chú tài khoản 2
-              </code>
+              {lang === "vi" ? (
+                <>
+                  Tải lên file CSV được xuất từ Excel để nhập hàng loạt profile. Tệp tin của bạn cần có định dạng sau:
+                  <code className="block bg-surface-2 p-2 border border-border rounded font-mono text-[10px] mt-1 text-accent whitespace-pre">
+                    Tên profile,Proxy,Ghi chú{"\n"}
+                    Profile_Demo_1,113.161.44.15:8080,Ghi chú tài khoản 1{"\n"}
+                    Profile_Demo_2,113.161.44.16:8080:user:pass,Ghi chú tài khoản 2
+                  </code>
+                </>
+              ) : (
+                <>
+                  Upload a CSV file exported from Excel to bulk import profiles. Your file should have the following format:
+                  <code className="block bg-surface-2 p-2 border border-border rounded font-mono text-[10px] mt-1 text-accent whitespace-pre">
+                    Profile Name,Proxy,Notes{"\n"}
+                    Profile_Demo_1,113.161.44.15:8080,Account Notes 1{"\n"}
+                    Profile_Demo_2,113.161.44.16:8080:user:pass,Account Notes 2
+                  </code>
+                </>
+              )}
             </span>
 
-            {/* Drag & Drop File Input */}
-            <div className="border border-dashed border-border hover:border-accent rounded-lg p-6 flex flex-col items-center justify-center bg-surface-2/40 cursor-pointer relative transition-colors">
-              <input
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <Upload className="h-8 w-8 text-gray-500 mb-2" />
-              <span className="font-medium text-gray-300">
-                {file ? file.name : "Kéo thả hoặc Click để chọn tệp CSV"}
-              </span>
-              <span className="text-[10px] text-gray-500 mt-1">Hỗ trợ định dạng .csv hoặc .txt</span>
-            </div>
+              {/* Drag & Drop File Input */}
+              <div className="border border-dashed border-border hover:border-accent rounded-lg p-6 flex flex-col items-center justify-center bg-surface-2/40 cursor-pointer relative transition-colors">
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="h-8 w-8 text-gray-500 mb-2" />
+                <span className="font-medium text-gray-300">
+                  {file ? file.name : (lang === "vi" ? "Kéo thả hoặc Click để chọn tệp CSV" : "Drag & Drop or Click to choose CSV file")}
+                </span>
+                <span className="text-[10px] text-gray-500 mt-1">
+                  {lang === "vi" ? "Hỗ trợ định dạng .csv hoặc .txt" : "Supports .csv or .txt formats"}
+                </span>
+              </div>
           </div>
 
           {/* Preview list */}
           {csvPreview.length > 0 && (
             <div className="space-y-2">
-              <label className="block text-gray-400 font-medium">Xem trước dữ liệu nhập (Tối đa 10 dòng):</label>
+              <label className="block text-gray-400 font-medium">
+                {lang === "vi" ? "Xem trước dữ liệu nhập (Tối đa 10 dòng):" : "Preview import data (Max 10 lines):"}
+              </label>
               <div className="bg-surface-2 border border-border rounded max-h-40 overflow-y-auto font-mono text-[10px] divide-y divide-border/40">
                 {csvPreview.map((item, idx) => (
                   <div key={idx} className="p-2 flex items-center justify-between gap-4">
@@ -188,7 +210,7 @@ export function BulkImportDialog({ onImport, onCancel }: BulkImportDialogProps) 
                       <FileText className="h-3 w-3 text-gray-400" />
                       {item.name}
                     </span>
-                    <span className="text-gray-400 truncate max-w-xs">{item.proxy || "(Không proxy)"}</span>
+                    <span className="text-gray-400 truncate max-w-xs">{item.proxy || (lang === "vi" ? "(Không proxy)" : "(No proxy)")}</span>
                     <span className="text-gray-500 truncate max-w-xs">{item.notes || "-"}</span>
                   </div>
                 ))}

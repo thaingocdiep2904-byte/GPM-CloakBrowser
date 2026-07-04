@@ -96,7 +96,7 @@ const generateRandomMac = () => {
 };
 
 export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const isEdit = profile !== null;
 
   const [activeTab, setActiveTab] = useState<"quick" | "conn" | "soft" | "hard">("quick");
@@ -241,7 +241,14 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    if (!confirm("Xóa profile này? Toàn bộ dữ liệu trình duyệt trên ổ đĩa sẽ bị xóa vĩnh viễn.")) return;
+    if (
+      !confirm(
+        lang === "vi"
+          ? "Xóa profile này? Toàn bộ dữ liệu trình duyệt trên ổ đĩa sẽ bị xóa vĩnh viễn."
+          : "Delete this profile? All browser data on disk will be permanently deleted."
+      )
+    )
+      return;
     setDeleting(true);
     try {
       await onDelete();
@@ -355,7 +362,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           className={`px-4 py-2 font-semibold uppercase tracking-wider border-b-2 text-[10px] transition-colors ${activeTab === "quick" ? "border-accent text-accent bg-surface-1/40" : "border-transparent text-gray-400 hover:text-gray-200"
             }`}
         >
-          Quick action
+          {lang === "vi" ? "Thiết lập nhanh" : "Quick action"}
         </button>
         <button
           type="button"
@@ -363,7 +370,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           className={`px-4 py-2 font-semibold uppercase tracking-wider border-b-2 text-[10px] transition-colors ${activeTab === "conn" ? "border-accent text-accent bg-surface-1/40" : "border-transparent text-gray-400 hover:text-gray-200"
             }`}
         >
-          Connection
+          {lang === "vi" ? "Cấu hình mạng" : "Connection"}
         </button>
         <button
           type="button"
@@ -371,7 +378,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           className={`px-4 py-2 font-semibold uppercase tracking-wider border-b-2 text-[10px] transition-colors ${activeTab === "soft" ? "border-accent text-accent bg-surface-1/40" : "border-transparent text-gray-400 hover:text-gray-200"
             }`}
         >
-          Software
+          {lang === "vi" ? "Phần mềm" : "Software"}
         </button>
         <button
           type="button"
@@ -379,7 +386,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           className={`px-4 py-2 font-semibold uppercase tracking-wider border-b-2 text-[10px] transition-colors ${activeTab === "hard" ? "border-accent text-accent bg-surface-1/40" : "border-transparent text-gray-400 hover:text-gray-200"
             }`}
         >
-          Hardware
+          {lang === "vi" ? "Phần cứng" : "Hardware"}
         </button>
       </div>
 
@@ -392,28 +399,34 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           {activeTab === "quick" && (
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 mb-1.5 font-medium">Tên Profile</label>
+                <label className="block text-gray-400 mb-1.5 font-medium">
+                  {lang === "vi" ? "Tên Profile" : "Profile Name"}
+                </label>
                 <input
                   className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
-                  placeholder="Ví dụ: Tài khoản Facebook 01"
+                  placeholder={lang === "vi" ? "Ví dụ: Tài khoản Facebook 01" : "e.g., Facebook Account 01"}
                   required
                 />
               </div>
               <div>
-                <label className="block text-gray-400 mb-1.5 font-medium">Startup URL (Trang chủ khởi động)</label>
+                <label className="block text-gray-400 mb-1.5 font-medium">
+                  {lang === "vi" ? "Startup URL (Trang chủ khởi động)" : "Startup URL"}
+                </label>
                 <input
                   className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                   type="url"
                   value={startupUrl}
                   onChange={(e) => setStartupUrl(e.target.value)}
-                  placeholder="Ví dụ: https://google.com (Để trống để mở trang Tab Mới)"
+                  placeholder={lang === "vi" ? "Ví dụ: https://google.com (Để trống để mở trang Tab Mới)" : "e.g., https://google.com (Leave blank for New Tab)"}
                 />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-gray-400 mb-1.5 font-medium">Hệ Điều Hành (Platform)</label>
+                  <label className="block text-gray-400 mb-1.5 font-medium">
+                    {lang === "vi" ? "Hệ Điều Hành" : "OS Platform"}
+                  </label>
                   <select
                     className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                     value={form.platform}
@@ -431,7 +444,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     value={(form as any).browser_brand ?? ""}
                     onChange={(e) => set("browser_brand" as any, e.target.value || null)}
                   >
-                    <option value="">Chrome (Mặc định)</option>
+                    <option value="">Chrome ({lang === "vi" ? "Mặc định" : "Default"})</option>
                     <option value="Edge">Microsoft Edge</option>
                     <option value="Opera">Opera</option>
                     <option value="Vivaldi">Vivaldi</option>
@@ -445,13 +458,13 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                       type="number"
                       value={form.fingerprint_seed ?? ""}
                       onChange={(e) => set("fingerprint_seed", e.target.value ? Number(e.target.value) : null)}
-                      placeholder="Tự động (ngẫu nhiên)"
+                      placeholder={lang === "vi" ? "Tự động (ngẫu nhiên)" : "Auto (random)"}
                     />
                     <button
                       type="button"
                       onClick={randomizeSeed}
                       className="px-3 rounded bg-surface-3 hover:bg-surface-4 text-gray-300 transition-colors border border-border"
-                      title="Tự động tạo ngẫu nhiên (Seed)"
+                      title={lang === "vi" ? "Tự động tạo ngẫu nhiên (Seed)" : "Auto-generate random seed"}
                     >
                       <RefreshCw className="h-4 w-4" />
                     </button>
@@ -459,12 +472,14 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-gray-400 mb-1.5 font-medium">Ghi Chú</label>
+                <label className="block text-gray-400 mb-1.5 font-medium">
+                  {lang === "vi" ? "Ghi Chú" : "Notes"}
+                </label>
                 <textarea
                   className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs h-24 resize-none"
                   value={form.notes ?? ""}
                   onChange={(e) => set("notes", e.target.value || null)}
-                  placeholder="Nhập ghi chú cá nhân cho profile này..."
+                  placeholder={lang === "vi" ? "Nhập ghi chú cá nhân cho profile này..." : "Enter personal notes for this profile..."}
                 />
               </div>
             </div>
@@ -474,31 +489,37 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           {activeTab === "conn" && (
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-400 mb-1.5 font-medium">Cấu Hình Proxy</label>
+                <label className="block text-gray-400 mb-1.5 font-medium">
+                  {lang === "vi" ? "Cấu Hình Proxy" : "Proxy Configuration"}
+                </label>
                 <input
                   className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs font-mono"
                   value={form.proxy ?? ""}
                   onChange={(e) => set("proxy", e.target.value || null)}
-                  placeholder="http://user:pass@host:port hoặc socks5://host:port"
+                  placeholder="http://user:pass@host:port or socks5://host:port"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-400 mb-1.5 font-medium">Múi Giờ (Timezone)</label>
+                  <label className="block text-gray-400 mb-1.5 font-medium">
+                    {lang === "vi" ? "Múi Giờ" : "Timezone"}
+                  </label>
                   <input
                     className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                     value={form.timezone ?? ""}
                     onChange={(e) => set("timezone", e.target.value || null)}
-                    placeholder="Ví dụ: Asia/Ho_Chi_Minh (Để trống để tự động)"
+                    placeholder={lang === "vi" ? "Ví dụ: Asia/Ho_Chi_Minh (Để trống để tự động)" : "e.g., Asia/Ho_Chi_Minh (Leave blank for auto)"}
                   />
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1.5 font-medium">Ngôn Ngữ (Locale)</label>
+                  <label className="block text-gray-400 mb-1.5 font-medium">
+                    {lang === "vi" ? "Ngôn Ngữ" : "Locale"}
+                  </label>
                   <input
                     className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                     value={form.locale ?? ""}
                     onChange={(e) => set("locale", e.target.value || null)}
-                    placeholder="Ví dụ: vi-VN,en-US (Để trống để tự động)"
+                    placeholder={lang === "vi" ? "Ví dụ: vi-VN,en-US (Để trống để tự động)" : "e.g., vi-VN,en-US (Leave blank for auto)"}
                   />
                 </div>
               </div>
@@ -509,7 +530,11 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                   onChange={(e) => set("geoip", e.target.checked)}
                   className="rounded border-border bg-surface-2 h-4 w-4 text-accent focus:ring-0 focus:ring-offset-0"
                 />
-                <span className="text-xs">Tự động cấu hình Timezone/Locale dựa trên IP của Proxy (GeoIP)</span>
+                <span className="text-xs">
+                  {lang === "vi"
+                    ? "Tự động cấu hình Timezone/Locale dựa trên IP của Proxy (GeoIP)"
+                    : "Automatically configure Timezone/Locale based on Proxy IP (GeoIP)"}
+                </span>
               </label>
             </div>
           )}
@@ -523,21 +548,23 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                   className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs font-mono"
                   value={form.user_agent ?? ""}
                   onChange={(e) => set("user_agent", e.target.value || null)}
-                  placeholder="Tự động Browser Fingerprint (Seed)"
+                  placeholder={lang === "vi" ? "Tự động Browser Fingerprint (Seed)" : "Auto Browser Fingerprint (Seed)"}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-gray-400 mb-1.5 font-medium">Color Scheme (Chế độ giao diện)</label>
+                  <label className="block text-gray-400 mb-1.5 font-medium">
+                    {lang === "vi" ? "Chế độ giao diện (Color Scheme)" : "Color Scheme"}
+                  </label>
                   <select
                     className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                     value={form.color_scheme ?? ""}
                     onChange={(e) => set("color_scheme", e.target.value || null as any)}
                   >
-                    <option value="">Mặc định hệ thống</option>
-                    <option value="light">Sáng (Light)</option>
-                    <option value="dark">Tối (Dark)</option>
-                    <option value="no-preference">Không ưu tiên</option>
+                    <option value="">{lang === "vi" ? "Mặc định hệ thống" : "System default"}</option>
+                    <option value="light">{lang === "vi" ? "Sáng (Light)" : "Light"}</option>
+                    <option value="dark">{lang === "vi" ? "Tối (Dark)" : "Dark"}</option>
+                    <option value="no-preference">{lang === "vi" ? "Không ưu tiên" : "No preference"}</option>
                   </select>
                 </div>
               </div>
@@ -549,18 +576,24 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     onChange={(e) => set("humanize", e.target.checked)}
                     className="rounded border-border bg-surface-2 h-4 w-4 text-accent focus:ring-0"
                   />
-                  <span>Mô phỏng hành vi chuột, bàn phím và cuộn giống người thật (Anti-bot bypass)</span>
+                  <span>
+                    {lang === "vi"
+                      ? "Mô phỏng hành vi chuột, bàn phím và cuộn giống người thật (Anti-bot bypass)"
+                      : "Emulate human-like mouse, keyboard and scroll behaviors (Anti-bot bypass)"}
+                  </span>
                 </label>
                 {form.humanize && (
                   <div className="pl-6">
-                    <label className="block text-gray-400 mb-1.5 font-medium">Chế độ mô phỏng</label>
+                    <label className="block text-gray-400 mb-1.5 font-medium">
+                      {lang === "vi" ? "Chế độ mô phỏng" : "Emulation Preset"}
+                    </label>
                     <select
                       className="input w-full max-w-xs bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                       value={form.human_preset}
                       onChange={(e) => set("human_preset", e.target.value as any)}
                     >
-                      <option value="default">Mặc định (Tốc độ bình thường)</option>
-                      <option value="careful">Cẩn thận (Tốc độ chậm, tự nhiên)</option>
+                      <option value="default">{lang === "vi" ? "Mặc định (Tốc độ bình thường)" : "Default (Normal speed)"}</option>
+                      <option value="careful">{lang === "vi" ? "Cẩn thận (Tốc độ chậm, tự nhiên)" : "Careful (Slower, natural speed)"}</option>
                     </select>
                   </div>
                 )}
@@ -571,13 +604,17 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     onChange={(e) => set("auto_launch", e.target.checked)}
                     className="rounded border-border bg-surface-2 h-4 w-4 text-accent focus:ring-0"
                   />
-                  <span>Tự động khởi chạy profile khi Phần mềm được bật</span>
+                  <span>
+                    {lang === "vi" ? "Tự động khởi chạy profile khi Phần mềm được bật" : "Auto launch profile on application startup"}
+                  </span>
                 </label>
               </div>
 
               {/* Tags */}
               <div className="border-t border-border/60 pt-3">
-                <label className="block text-gray-400 mb-2 font-medium">Nhãn Nhóm (Tags)</label>
+                <label className="block text-gray-400 mb-2 font-medium">
+                  {lang === "vi" ? "Nhãn Nhóm (Tags)" : "Tags / Groups"}
+                </label>
                 {(form.tags ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {(form.tags ?? []).map((t) => (
@@ -615,18 +652,22 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-                    placeholder="Tên nhóm mới..."
+                    placeholder={lang === "vi" ? "Tên nhóm mới..." : "New tag / group name..."}
                   />
                   <button type="button" onClick={addTag} className="px-3 py-1.5 rounded bg-surface-3 hover:bg-surface-4 text-gray-300 transition-colors border border-border">
-                    Thêm
+                    {lang === "vi" ? "Thêm" : "Add"}
                   </button>
                 </div>
               </div>
 
               {/* Launch Args */}
               <div className="border-t border-border/60 pt-3">
-                <label className="block text-gray-400 mb-1.5 font-medium">Đối số khởi chạy (Chromium Launch Flags)</label>
-                <p className="text-[10px] text-gray-500 mb-2">Các flags Chromium tùy chỉnh (ví dụ: --disable-web-security, --incognito)</p>
+                <label className="block text-gray-400 mb-1.5 font-medium">
+                  {lang === "vi" ? "Đối số khởi chạy (Chromium Launch Flags)" : "Chromium Launch Flags"}
+                </label>
+                <p className="text-[10px] text-gray-500 mb-2">
+                  {lang === "vi" ? "Các flags Chromium tùy chỉnh (ví dụ: --disable-web-security, --incognito)" : "Custom Chromium flags (e.g., --disable-web-security, --incognito)"}
+                </p>
                 {(form.launch_args ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {(form.launch_args ?? []).map((arg, idx) => (
@@ -648,10 +689,10 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     value={launchArgInput}
                     onChange={(e) => setLaunchArgInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLaunchArg(); } }}
-                    placeholder="Ví dụ: --disable-notifications"
+                    placeholder={lang === "vi" ? "Ví dụ: --disable-notifications" : "e.g., --disable-notifications"}
                   />
                   <button type="button" onClick={addLaunchArg} className="px-3 py-1.5 rounded bg-surface-3 hover:bg-surface-4 text-gray-300 transition-colors border border-border">
-                    Thêm
+                    {lang === "vi" ? "Thêm" : "Add"}
                   </button>
                 </div>
               </div>
@@ -662,13 +703,17 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           {activeTab === "hard" && (
             <div className="space-y-4">
               <span className="text-[10px] text-gray-400 block mb-2 leading-relaxed bg-surface-3/30 p-2.5 rounded border border-border/40">
-                Phần mềm đã tạo ngẫu nhiên một thông tin phần cứng. Nếu không quá hiểu về Fingerprint, bạn có thể không quan tâm tới phần này. Các thông số về RAM, CPU Core, Audio, Media outputs, WebGL, Tên card màn hình... tự động tạo ngẫu nhiên.
+                {lang === "vi"
+                  ? "Phần mềm đã tạo ngẫu nhiên một thông tin phần cứng. Nếu không quá hiểu về Fingerprint, bạn có thể không quan tâm tới phần này. Các thông số về RAM, CPU Core, Audio, Media outputs, WebGL, Tên card màn hình... tự động tạo ngẫu nhiên."
+                  : "The software has automatically generated random hardware information. If you don't fully understand Fingerprinting, you can leave these settings as default. RAM, CPU cores, Audio, Media devices, WebGL, GPU... are auto-randomized."}
               </span>
 
               {/* Phân giải màn hình */}
               <div className="grid grid-cols-3 gap-3 items-end">
                 <div className="col-span-1">
-                  <label className="block text-gray-400 mb-1 font-medium">Phân giải màn hình</label>
+                  <label className="block text-gray-400 mb-1 font-medium">
+                    {lang === "vi" ? "Phân giải màn hình" : "Screen Resolution"}
+                  </label>
                   <select
                     className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                     value={currentResolution}
@@ -687,13 +732,15 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     {Object.keys(RESOLUTION_PRESETS).map((name) => (
                       <option key={name} value={name}>{name}</option>
                     ))}
-                    <option value="custom">Tự cấu hình (Custom)</option>
+                    <option value="custom">{lang === "vi" ? "Tự cấu hình (Custom)" : "Custom Resolution"}</option>
                   </select>
                 </div>
                 {currentResolution === "custom" && (
                   <>
                     <div>
-                      <label className="block text-gray-400 mb-1 font-medium">Chiều rộng (Width)</label>
+                      <label className="block text-gray-400 mb-1 font-medium">
+                        {lang === "vi" ? "Chiều rộng (Width)" : "Width"}
+                      </label>
                       <input
                         className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                         type="number"
@@ -702,7 +749,9 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-400 mb-1 font-medium">Chiều cao (Height)</label>
+                      <label className="block text-gray-400 mb-1 font-medium">
+                        {lang === "vi" ? "Chiều cao (Height)" : "Height"}
+                      </label>
                       <input
                         className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
                         type="number"
@@ -723,8 +772,8 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     value={form.canvas_noise ?? "off"}
                     onChange={(e) => set("canvas_noise", e.target.value)}
                   >
-                    <option value="off">Off (Tắt)</option>
-                    <option value="on">On (Bật)</option>
+                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
+                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
                   </select>
                 </div>
                 <div>
@@ -734,8 +783,8 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     value={form.client_rect_noise ?? "off"}
                     onChange={(e) => set("client_rect_noise", e.target.value)}
                   >
-                    <option value="off">Off (Tắt)</option>
-                    <option value="on">On (Bật)</option>
+                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
+                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
                   </select>
                 </div>
                 <div>
@@ -745,8 +794,8 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     value={form.webgl_noise ?? "off"}
                     onChange={(e) => set("webgl_noise", e.target.value)}
                   >
-                    <option value="off">Off (Tắt)</option>
-                    <option value="on">On (Bật)</option>
+                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
+                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
                   </select>
                 </div>
                 <div>
@@ -756,8 +805,8 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     value={form.audio_noise ?? "on"}
                     onChange={(e) => set("audio_noise", e.target.value)}
                   >
-                    <option value="off">Off (Tắt)</option>
-                    <option value="on">On (Bật)</option>
+                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
+                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
                   </select>
                 </div>
               </div>
@@ -771,18 +820,22 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                     onChange={(e) => set("webgl_meta_masked", e.target.checked)}
                     className="rounded border-border bg-surface-2 h-4 w-4 text-accent focus:ring-0"
                   />
-                  <span>WebGL Meta masked (Ẩn danh thông số card màn hình)</span>
+                  <span>
+                    {lang === "vi" ? "WebGL Meta masked (Ẩn danh thông số card màn hình)" : "WebGL Meta masked (Spoof graphic card details)"}
+                  </span>
                 </label>
                 {form.webgl_meta_masked && (
                   <div className="grid grid-cols-1 gap-2.5 pl-6">
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">Mẫu GPU Presets</label>
+                      <label className="block text-[11px] text-gray-400 mb-1">
+                        {lang === "vi" ? "Mẫu GPU Presets" : "GPU Presets"}
+                      </label>
                       <select
                         className="input w-full bg-surface-2 border border-border rounded px-3 py-1.5 text-white text-xs"
                         value=""
                         onChange={(e) => { if (e.target.value) applyGpuPreset(e.target.value); }}
                       >
-                        <option value="">-- Thiết lập mặc định --</option>
+                        <option value="">-- {lang === "vi" ? "Thiết lập mặc định" : "Default preset"} --</option>
                         {Object.keys(GPU_PRESETS).map((name) => (
                           <option key={name} value={name}>{name}</option>
                         ))}
@@ -795,7 +848,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                           className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs font-mono"
                           value={form.gpu_vendor ?? ""}
                           onChange={(e) => set("gpu_vendor", e.target.value || null)}
-                          placeholder="Mặc định tự động tạo"
+                          placeholder={lang === "vi" ? "Mặc định tự động tạo" : "Auto-generated by default"}
                         />
                       </div>
                       <div>
@@ -804,7 +857,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                           className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs font-mono"
                           value={form.gpu_renderer ?? ""}
                           onChange={(e) => set("gpu_renderer", e.target.value || null)}
-                          placeholder="Mặc định tự động tạo"
+                          placeholder={lang === "vi" ? "Mặc định tự động tạo" : "Auto-generated by default"}
                         />
                       </div>
                     </div>
@@ -862,25 +915,29 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
               {/* CPU core, RAM, Storage Quota, MAC address */}
               <div className="grid grid-cols-4 gap-3 border-t border-border/40 pt-3">
                 <div>
-                  <label className="block text-gray-400 mb-1 font-medium">Số nhân CPU</label>
+                  <label className="block text-gray-400 mb-1 font-medium">
+                    {lang === "vi" ? "Số nhân CPU" : "CPU Cores"}
+                  </label>
                   <select
                     className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
                     value={form.hardware_concurrency ?? ""}
                     onChange={(e) => set("hardware_concurrency", e.target.value ? Number(e.target.value) : null)}
                   >
-                    <option value="">Tự động</option>
-                    <option value="2">2 nhân</option>
-                    <option value="4">4 nhân</option>
-                    <option value="6">6 nhân</option>
-                    <option value="8">8 nhân</option>
-                    <option value="12">12 nhân</option>
-                    <option value="16">16 nhân</option>
-                    <option value="20">20 nhân</option>
-                    <option value="24">24 nhân</option>
+                    <option value="">{lang === "vi" ? "Tự động" : "Auto"}</option>
+                    <option value="2">2 {lang === "vi" ? "nhân" : "cores"}</option>
+                    <option value="4">4 {lang === "vi" ? "nhân" : "cores"}</option>
+                    <option value="6">6 {lang === "vi" ? "nhân" : "cores"}</option>
+                    <option value="8">8 {lang === "vi" ? "nhân" : "cores"}</option>
+                    <option value="12">12 {lang === "vi" ? "nhân" : "cores"}</option>
+                    <option value="16">16 {lang === "vi" ? "nhân" : "cores"}</option>
+                    <option value="20">20 {lang === "vi" ? "nhân" : "cores"}</option>
+                    <option value="24">24 {lang === "vi" ? "nhân" : "cores"}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-400 mb-1 font-medium">Dung lượng RAM</label>
+                  <label className="block text-gray-400 mb-1 font-medium">
+                    {lang === "vi" ? "Dung lượng RAM" : "RAM Memory"}
+                  </label>
                   <select
                     className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
                     value={form.device_memory ?? 4}
@@ -909,7 +966,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                       type="button"
                       onClick={() => set("mac_address", generateRandomMac())}
                       className="px-2 rounded bg-surface-3 hover:bg-surface-4 text-gray-300 transition-colors border border-border"
-                      title="Tạo MAC ngẫu nhiên"
+                      title={lang === "vi" ? "Tạo MAC ngẫu nhiên" : "Randomize MAC address"}
                     >
                       <RefreshCw className="h-3.5 w-3.5" />
                     </button>
@@ -925,7 +982,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
                   className="flex items-center gap-1 px-4 py-2 rounded bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white transition-colors border border-indigo-500/30 font-medium text-[11px]"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
-                  <span>Tạo thông số mới</span>
+                  <span>{lang === "vi" ? "Tạo thông số mới" : "Randomize all hardware"}</span>
                 </button>
               </div>
             </div>
@@ -938,13 +995,15 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           <div className="flex items-center justify-between border-b border-border/60 pb-2.5 mb-1.5">
             <div className="flex items-center gap-2">
               <Layers className="h-4 w-4 text-accent" />
-              <h3 className="font-bold text-white uppercase tracking-wider text-[11px]">Thông số vân tay</h3>
+              <h3 className="font-bold text-white uppercase tracking-wider text-[11px]">
+                {lang === "vi" ? "Thông số vân tay" : "Fingerprint Summary"}
+              </h3>
             </div>
             <button
               type="button"
               onClick={handleRandomizeAll}
               className="p-1 rounded bg-indigo-600/10 hover:bg-indigo-600 border border-indigo-500/25 text-indigo-400 hover:text-white transition-colors"
-              title="Tạo ngẫu nhiên nhanh toàn bộ thông số phần cứng/phần mềm"
+              title={lang === "vi" ? "Tạo ngẫu nhiên nhanh toàn bộ thông số phần cứng/phần mềm" : "Quick randomize all configuration"}
             >
               <RefreshCw className="h-3.5 w-3.5" />
             </button>
@@ -960,57 +1019,83 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
 
             <div className="grid grid-cols-2 gap-3 pt-1 border-t border-border/30">
               <div>
-                <span className="text-[10px] text-gray-500 font-medium block">Hệ điều hành</span>
+                <span className="text-[10px] text-gray-500 font-medium block">
+                  {lang === "vi" ? "Hệ điều hành" : "OS Platform"}
+                </span>
                 <span className="text-white font-medium capitalize">{form.platform}</span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-500 font-medium block">Browser Fingerprint (Seed)</span>
-                <span className="text-white font-mono">{form.fingerprint_seed ?? "Ngẫu nhiên"}</span>
+                <span className="text-white font-mono">
+                  {form.fingerprint_seed ?? (lang === "vi" ? "Ngẫu nhiên" : "Random")}
+                </span>
               </div>
             </div>
 
             <div className="pt-1.5 border-t border-border/30 flex flex-col gap-0.5">
-              <span className="text-[10px] text-gray-500 font-medium">Đường dẫn Proxy</span>
-              <span className="text-white font-mono break-all">{form.proxy || "Không dùng Proxy (Kết nối trực tiếp)"}</span>
+              <span className="text-[10px] text-gray-500 font-medium">
+                {lang === "vi" ? "Đường dẫn Proxy" : "Proxy connection"}
+              </span>
+              <span className="text-white font-mono break-all">
+                {form.proxy || (lang === "vi" ? "Không dùng Proxy (Kết nối trực tiếp)" : "No Proxy (Direct Connection)")}
+              </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-border/30">
               <div>
-                <span className="text-[10px] text-gray-500 font-medium block">Màn hình (Screen)</span>
+                <span className="text-[10px] text-gray-500 font-medium block">
+                  {lang === "vi" ? "Màn hình (Screen)" : "Resolution"}
+                </span>
                 <span className="text-white font-mono">{form.screen_width} × {form.screen_height}</span>
               </div>
               <div>
-                <span className="text-[10px] text-gray-500 font-medium block">Dung lượng RAM</span>
+                <span className="text-[10px] text-gray-500 font-medium block">
+                  {lang === "vi" ? "Dung lượng RAM" : "RAM Memory"}
+                </span>
                 <span className="text-white font-medium">{form.device_memory} GB</span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-border/30">
               <div>
-                <span className="text-[10px] text-gray-500 font-medium block">Múi giờ (Timezone)</span>
-                <span className="text-white font-mono break-all">{form.geoip ? "Tự động (GeoIP)" : form.timezone || "Tự động"}</span>
+                <span className="text-[10px] text-gray-500 font-medium block">
+                  {lang === "vi" ? "Múi giờ (Timezone)" : "Timezone"}
+                </span>
+                <span className="text-white font-mono break-all">
+                  {form.geoip ? (lang === "vi" ? "Tự động (GeoIP)" : "Auto (GeoIP)") : form.timezone || (lang === "vi" ? "Tự động" : "Auto")}
+                </span>
               </div>
               <div>
-                <span className="text-[10px] text-gray-500 font-medium block">Ngôn ngữ (Locale)</span>
-                <span className="text-white font-mono break-all">{form.geoip ? "Tự động (GeoIP)" : form.locale || "Tự động"}</span>
+                <span className="text-[10px] text-gray-500 font-medium block">
+                  {lang === "vi" ? "Ngôn ngữ (Locale)" : "Locale"}
+                </span>
+                <span className="text-white font-mono break-all">
+                  {form.geoip ? (lang === "vi" ? "Tự động (GeoIP)" : "Auto (GeoIP)") : form.locale || (lang === "vi" ? "Tự động" : "Auto")}
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-border/30">
               <div>
-                <span className="text-[10px] text-gray-500 font-medium block">Số nhân CPU</span>
-                <span className="text-white font-mono">{form.hardware_concurrency ?? "Tự động"} cores</span>
+                <span className="text-[10px] text-gray-500 font-medium block">
+                  {lang === "vi" ? "Số nhân CPU" : "CPU Cores"}
+                </span>
+                <span className="text-white font-mono">
+                  {form.hardware_concurrency ?? (lang === "vi" ? "Tự động" : "Auto")} cores
+                </span>
               </div>
               <div>
                 <span className="text-[10px] text-gray-500 font-medium block">MAC Address</span>
-                <span className="text-white font-mono break-all">{form.mac_address || "Tự động"}</span>
+                <span className="text-white font-mono break-all">
+                  {form.mac_address || (lang === "vi" ? "Tự động" : "Auto")}
+                </span>
               </div>
             </div>
 
             <div className="pt-1.5 border-t border-border/30">
               <div>
                 <span className="text-[10px] text-gray-500 font-medium block">Browser Brand</span>
-                <span className="text-white font-medium">{(form as any).browser_brand || "Chrome"}</span>
+                <span className="text-white font-medium">{form.browser_brand || "Chrome"}</span>
               </div>
             </div>
 

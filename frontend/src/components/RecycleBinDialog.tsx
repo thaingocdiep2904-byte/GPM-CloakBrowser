@@ -51,7 +51,7 @@ const defaultConfirm: ConfirmState = {
 };
 
 export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: RecycleBinDialogProps) {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +94,11 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
       setProfiles(data);
       setSelectedIds([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Không thể tải danh sách thùng rác.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Không thể tải danh sách thùng rác." : "Failed to load Recycle Bin.")
+      );
     } finally {
       setLoading(false);
     }
@@ -161,10 +165,10 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
   const handleRestore = (id: string) => {
     const profile = profiles.find((p) => p.id === id);
     openConfirm({
-      title: "Khôi phục Profile",
-      message: `Bạn có chắc chắn muốn khôi phục profile "${profile?.name}" không?`,
-      warning: "ℹ️ Profile sẽ được khôi phục về danh sách quản lý bình thường.",
-      confirmLabel: "Khôi phục",
+      title: lang === "vi" ? "Khôi phục Profile" : "Restore Profile",
+      message: lang === "vi" ? `Bạn có chắc chắn muốn khôi phục profile "${profile?.name}" không?` : `Are you sure you want to restore profile "${profile?.name}"?`,
+      warning: lang === "vi" ? "ℹ️ Profile sẽ được khôi phục về danh sách quản lý bình thường." : "ℹ️ Profile will be restored to the normal management list.",
+      confirmLabel: lang === "vi" ? "Khôi phục" : "Restore",
       confirmColor: "amber",
       onConfirm: async () => {
         closeConfirm();
@@ -173,9 +177,19 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
           setProfiles((prev) => prev.filter((p) => p.id !== id));
           setSelectedIds((prev) => prev.filter((x) => x !== id));
           onRefreshProfiles();
-          showToast(`Đã khôi phục profile "${profile?.name}" thành công!`, "success");
+          showToast(
+            lang === "vi"
+              ? `Đã khôi phục profile "${profile?.name}" thành công!`
+              : `Successfully restored profile "${profile?.name}"!`,
+            "success"
+          );
         } catch (err) {
-          showToast(err instanceof Error ? err.message : "Khôi phục profile thất bại.", "error");
+          showToast(
+            err instanceof Error
+              ? err.message
+              : (lang === "vi" ? "Khôi phục profile thất bại." : "Failed to restore profile."),
+            "error"
+          );
         }
       },
     });
@@ -184,10 +198,10 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
   const handleForceDelete = (id: string) => {
     const profile = profiles.find((p) => p.id === id);
     openConfirm({
-      title: "Xóa vĩnh viễn Profile",
-      message: `Bạn có chắc chắn muốn xóa vĩnh viễn profile "${profile?.name}" không?`,
-      warning: "⚠️ Hành động này sẽ xóa hoàn toàn dữ liệu trình duyệt trên ổ đĩa và KHÔNG THỂ hoàn tác!",
-      confirmLabel: "Xóa vĩnh viễn",
+      title: lang === "vi" ? "Xóa vĩnh viễn Profile" : "Permanently Delete Profile",
+      message: lang === "vi" ? `Bạn có chắc chắn muốn xóa vĩnh viễn profile "${profile?.name}" không?` : `Are you sure you want to permanently delete profile "${profile?.name}"?`,
+      warning: lang === "vi" ? "⚠️ Hành động này sẽ xóa hoàn toàn dữ liệu trình duyệt trên ổ đĩa và KHÔNG THỂ hoàn tác!" : "⚠️ This will permanently delete all browser data from disk and CANNOT be undone!",
+      confirmLabel: lang === "vi" ? "Xóa vĩnh viễn" : "Permanently Delete",
       confirmColor: "rose",
       onConfirm: async () => {
         closeConfirm();
@@ -196,9 +210,19 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
           setProfiles((prev) => prev.filter((p) => p.id !== id));
           setSelectedIds((prev) => prev.filter((x) => x !== id));
           onRefreshProfiles();
-          showToast(`Đã xóa vĩnh viễn profile "${profile?.name}"!`, "success");
+          showToast(
+            lang === "vi"
+              ? `Đã xóa vĩnh viễn profile "${profile?.name}"!`
+              : `Permanently deleted profile "${profile?.name}"!`,
+            "success"
+          );
         } catch (err) {
-          showToast(err instanceof Error ? err.message : "Xóa vĩnh viễn thất bại.", "error");
+          showToast(
+            err instanceof Error
+              ? err.message
+              : (lang === "vi" ? "Xóa vĩnh viễn thất bại." : "Failed to permanently delete."),
+            "error"
+          );
         }
       },
     });
@@ -207,10 +231,10 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
   const handleBulkRestore = () => {
     if (selectedIds.length === 0) return;
     openConfirm({
-      title: "Khôi phục hàng loạt",
-      message: `Bạn có chắc chắn muốn khôi phục ${selectedIds.length} profile đã chọn không?`,
-      warning: "Các profile sẽ được khôi phục về danh sách quản lý bình thường.",
-      confirmLabel: "Khôi phục tất cả",
+      title: lang === "vi" ? "Khôi phục hàng loạt" : "Bulk Restore",
+      message: lang === "vi" ? `Bạn có chắc chắn muốn khôi phục ${selectedIds.length} profile đã chọn không?` : `Are you sure you want to restore ${selectedIds.length} selected profiles?`,
+      warning: lang === "vi" ? "Các profile sẽ được khôi phục về danh sách quản lý bình thường." : "Profiles will be restored to the normal management list.",
+      confirmLabel: lang === "vi" ? "Khôi phục tất cả" : "Restore All",
       confirmColor: "amber",
       onConfirm: async () => {
         closeConfirm();
@@ -222,12 +246,27 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
           onRefreshProfiles();
           const failCount = Object.keys(res.failed).length;
           if (failCount > 0) {
-            showToast(`Khôi phục ${restored.length} profile thành công. ${failCount} thất bại.`, "error");
+            showToast(
+              lang === "vi"
+                ? `Khôi phục ${restored.length} profile thành công. ${failCount} thất bại.`
+                : `Restored ${restored.length} profiles successfully. ${failCount} failed.`,
+              "error"
+            );
           } else {
-            showToast(`Đã khôi phục thành công ${restored.length} profile!`, "success");
+            showToast(
+              lang === "vi"
+                ? `Đã khôi phục thành công ${restored.length} profile!`
+                : `Successfully restored ${restored.length} profiles!`,
+              "success"
+            );
           }
         } catch (err) {
-          showToast(err instanceof Error ? err.message : "Khôi phục hàng loạt thất bại.", "error");
+          showToast(
+            err instanceof Error
+              ? err.message
+              : (lang === "vi" ? "Khôi phục hàng loạt thất bại." : "Failed to bulk restore."),
+            "error"
+          );
         }
       },
     });
@@ -236,10 +275,10 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
   const handleBulkForceDelete = () => {
     if (selectedIds.length === 0) return;
     openConfirm({
-      title: "Xóa vĩnh viễn hàng loạt",
-      message: `Bạn có chắc chắn muốn xóa vĩnh viễn ${selectedIds.length} profile đã chọn không?`,
-      warning: "⚠️ Mọi dữ liệu trình duyệt sẽ bị xóa hoàn toàn và KHÔNG THỂ hoàn tác!",
-      confirmLabel: "Xóa vĩnh viễn tất cả",
+      title: lang === "vi" ? "Xóa vĩnh viễn hàng loạt" : "Bulk Permanently Delete",
+      message: lang === "vi" ? `Bạn có chắc chắn muốn xóa vĩnh viễn ${selectedIds.length} profile đã chọn không?` : `Are you sure you want to permanently delete ${selectedIds.length} selected profiles?`,
+      warning: lang === "vi" ? "⚠️ Mọi dữ liệu trình duyệt sẽ bị xóa hoàn toàn và KHÔNG THỂ hoàn tác!" : "⚠️ All browser data will be permanently deleted and CANNOT be undone!",
+      confirmLabel: lang === "vi" ? "Xóa vĩnh viễn tất cả" : "Permanently Delete All",
       confirmColor: "rose",
       onConfirm: async () => {
         closeConfirm();
@@ -251,12 +290,27 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
           onRefreshProfiles();
           const failCount = Object.keys(res.failed).length;
           if (failCount > 0) {
-            showToast(`Đã xóa ${deleted.length} profile. ${failCount} thất bại.`, "error");
+            showToast(
+              lang === "vi"
+                ? `Đã xóa ${deleted.length} profile. ${failCount} thất bại.`
+                : `Deleted ${deleted.length} profiles. ${failCount} failed.`,
+              "error"
+            );
           } else {
-            showToast(`Đã xóa vĩnh viễn ${deleted.length} profile!`, "success");
+            showToast(
+              lang === "vi"
+                ? `Đã xóa vĩnh viễn ${deleted.length} profile!`
+                : `Permanently deleted ${deleted.length} profiles!`,
+              "success"
+            );
           }
         } catch (err) {
-          showToast(err instanceof Error ? err.message : "Xóa vĩnh viễn hàng loạt thất bại.", "error");
+          showToast(
+            err instanceof Error
+              ? err.message
+              : (lang === "vi" ? "Xóa vĩnh viễn hàng loạt thất bại." : "Failed to bulk permanently delete."),
+            "error"
+          );
         }
       },
     });
@@ -373,23 +427,26 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
             {loading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400 bg-surface-1/50">
                 <Loader2 className="h-8 w-8 animate-spin text-accent" />
-                <span>Đang tải dữ liệu thùng rác...</span>
+                <span>{lang === "vi" ? "Đang tải dữ liệu thùng rác..." : "Loading Recycle Bin data..."}</span>
               </div>
             ) : error ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-rose-400 p-6 text-center">
                 <AlertCircle className="h-10 w-10 text-rose-500" />
-                <p className="font-semibold">Lỗi tải dữ liệu</p>
+                <p className="font-semibold">{lang === "vi" ? "Lỗi tải dữ liệu" : "Data Load Error"}</p>
                 <p className="text-xs text-gray-400 max-w-md">{error}</p>
                 <button onClick={fetchDeleted} className="mt-2 px-3 py-1 bg-surface-3 hover:bg-surface-4 border border-border text-white text-xs rounded transition-colors">
-                  Tải lại
+                  {lang === "vi" ? "Tải lại" : "Reload"}
                 </button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 gap-2 p-6 text-center">
                 <Trash2 className="h-12 w-12 text-gray-600" />
-                <p className="font-medium text-gray-400">Thùng rác trống</p>
+                <p className="font-medium text-gray-400">{lang === "vi" ? "Thùng rác trống" : "Recycle Bin is Empty"}</p>
                 <p className="text-[11px] text-gray-500 max-w-xs">
-                  {search ? "Không tìm thấy profile nào khớp với từ khóa." : "Không tìm thấy profile nào bị xóa tạm thời."}
+                  {search
+                    ? (lang === "vi" ? "Không tìm thấy profile nào khớp với từ khóa." : "No profiles matching keywords found.")
+                    : (lang === "vi" ? "Không tìm thấy profile nào bị xóa tạm thời." : "No temporarily deleted profiles found.")
+                  }
                 </p>
               </div>
             ) : (
@@ -399,12 +456,12 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
                     <th className="py-2.5 px-4 w-12">
                       <input type="checkbox" checked={isAllSelected} onChange={(e) => handleSelectAll(e.target.checked)} className="rounded border-gray-600 bg-surface-3 text-accent focus:ring-accent" />
                     </th>
-                    <th className="py-2.5 px-4 font-semibold text-gray-300">Tên Profile</th>
+                    <th className="py-2.5 px-4 font-semibold text-gray-300">{lang === "vi" ? "Tên Profile" : "Profile Name"}</th>
                     <th className="py-2.5 px-4 font-semibold text-gray-300 w-24">OS</th>
                     <th className="py-2.5 px-4 font-semibold text-gray-300">Proxy</th>
-                    <th className="py-2.5 px-4 font-semibold text-gray-300 w-40">Ngày Xóa</th>
-                    <th className="py-2.5 px-4 font-semibold text-gray-300">Ghi chú</th>
-                    <th className="py-2.5 px-4 font-semibold text-gray-300 w-28 text-right">Hành động</th>
+                    <th className="py-2.5 px-4 font-semibold text-gray-300 w-40">{lang === "vi" ? "Ngày Xóa" : "Deleted Date"}</th>
+                    <th className="py-2.5 px-4 font-semibold text-gray-300">{lang === "vi" ? "Ghi chú" : "Notes"}</th>
+                    <th className="py-2.5 px-4 font-semibold text-gray-300 w-28 text-right">{lang === "vi" ? "Hành động" : "Actions"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border bg-surface-1">
@@ -431,7 +488,7 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
                           {profile.proxy || <span className="text-gray-600 italic">Direct</span>}
                         </td>
                         <td className="py-2.5 px-4 text-gray-400 text-[11px]">
-                          {profile.updated_at ? new Date(profile.updated_at).toLocaleString("vi-VN") : "N/A"}
+                          {profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "N/A"}
                         </td>
                         <td className="py-2.5 px-4 text-gray-500 text-[11px] max-w-[150px] truncate">{profile.notes || "-"}</td>
                         <td className="py-2.5 px-4 text-right">
@@ -439,14 +496,14 @@ export function RecycleBinDialog({ onCancel, onRefreshProfiles, showFeedback }: 
                             <button
                               onClick={() => handleRestore(profile.id)}
                               className="p-1 rounded bg-emerald-600/15 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-colors"
-                              title="Khôi phục profile này"
+                              title={lang === "vi" ? "Khôi phục profile này" : "Restore this profile"}
                             >
                               <RotateCcw className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={() => handleForceDelete(profile.id)}
                               className="p-1 rounded bg-rose-600/15 text-rose-400 hover:bg-rose-600 hover:text-white transition-colors"
-                              title="Xóa vĩnh viễn"
+                              title={lang === "vi" ? "Xóa vĩnh viễn" : "Permanently Delete"}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>

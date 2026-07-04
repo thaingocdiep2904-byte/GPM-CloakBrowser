@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Upload, Check, Save, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
+import { useLanguage } from "../lib/i18n";
 
 interface ImportCookiesDialogProps {
   profileId: string;
@@ -15,6 +16,7 @@ export function ImportCookiesDialog({
   onSuccess,
   onCancel
 }: ImportCookiesDialogProps) {
+  const { lang, t } = useLanguage();
   const [cookieJson, setCookieJson] = useState("");
   const [fileFeedback, setFileFeedback] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -32,14 +34,18 @@ export function ImportCookiesDialog({
         // Kiểm tra xem có phải JSON hợp lệ không
         const parsed = JSON.parse(text);
         if (!Array.isArray(parsed)) {
-          setError("File JSON phải chứa một mảng các cookies.");
+          setError(lang === "vi" ? "File JSON phải chứa một mảng các cookies." : "JSON file must contain an array of cookies.");
           return;
         }
         setCookieJson(text);
-        setFileFeedback(`Đã tải file: ${file.name} (${parsed.length} cookies)`);
+        setFileFeedback(
+          lang === "vi"
+            ? `Đã tải file: ${file.name} (${parsed.length} cookies)`
+            : `Loaded file: ${file.name} (${parsed.length} cookies)`
+        );
         setError(null);
       } catch (err) {
-        setError("Không thể đọc file JSON. Vui lòng kiểm tra định dạng.");
+        setError(lang === "vi" ? "Không thể đọc file JSON. Vui lòng kiểm tra định dạng." : "Failed to read JSON file. Please check format.");
       }
     };
     reader.readAsText(file);
@@ -48,7 +54,7 @@ export function ImportCookiesDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cookieJson.trim()) {
-      setError("Vui lòng dán nội dung JSON cookie hoặc chọn file.");
+      setError(lang === "vi" ? "Vui lòng dán nội dung JSON cookie hoặc chọn file." : "Please paste JSON cookie content or select a file.");
       return;
     }
 
@@ -60,13 +66,13 @@ export function ImportCookiesDialog({
       try {
         parsedCookies = JSON.parse(cookieJson.trim());
       } catch (err) {
-        setError("Nội dung cookie dán vào không đúng định dạng JSON hợp lệ.");
+        setError(lang === "vi" ? "Nội dung cookie dán vào không đúng định dạng JSON hợp lệ." : "Pasted cookie content is not a valid JSON format.");
         setSaving(false);
         return;
       }
 
       if (!Array.isArray(parsedCookies)) {
-        setError("Cookie JSON phải là một mảng danh sách cookies.");
+        setError(lang === "vi" ? "Cookie JSON phải là một mảng danh sách cookies." : "Cookie JSON must be an array of cookies.");
         setSaving(false);
         return;
       }
@@ -74,7 +80,11 @@ export function ImportCookiesDialog({
       const res = await api.importCookies(profileId, parsedCookies);
       onSuccess(res.imported);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Nhập cookie thất bại.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : (lang === "vi" ? "Nhập cookie thất bại." : "Failed to import cookies.")
+      );
     } finally {
       setSaving(false);
     }
@@ -85,7 +95,9 @@ export function ImportCookiesDialog({
       <form onSubmit={handleSubmit} className="bg-surface-1 border border-border rounded-lg shadow-2xl w-full max-w-lg flex flex-col relative animate-scale-up">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-surface-2 rounded-t-lg relative">
-          <h2 className="text-sm font-semibold text-white">Import Cookies cho Profile</h2>
+          <h2 className="text-sm font-semibold text-white">
+            {lang === "vi" ? "Import Cookies cho Profile" : "Import Cookies for Profile"}
+          </h2>
           <div className="flex items-center gap-2 mr-8">
             <button
               type="submit"
@@ -97,17 +109,18 @@ export function ImportCookiesDialog({
               ) : (
                 <Save className="h-3.5 w-3.5" />
               )}
-              <span>Nhập Cookies</span>
+              <span>{lang === "vi" ? "Nhập Cookies" : "Import Cookies"}</span>
             </button>
           </div>
-          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title="Đóng không lưu">
+          <button type="button" onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white p-1 rounded hover:bg-surface-3 transition-colors z-20" title={t("table.close_btn")}>
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Info */}
         <div className="px-5 pt-4 text-xs text-gray-400">
-          Nhập cookies cho profile: <strong className="text-accent text-[13px]">{profileName}</strong>
+          {lang === "vi" ? "Nhập cookies cho profile:" : "Import cookies for profile:"}{" "}
+          <strong className="text-accent text-[13px]">{profileName}</strong>
         </div>
 
         {/* Error message */}
@@ -127,7 +140,9 @@ export function ImportCookiesDialog({
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <Upload className="h-6 w-6 text-gray-500 mb-1.5" />
-            <span className="font-medium text-gray-300">Kéo thả hoặc click chọn file .json cookies</span>
+            <span className="font-medium text-gray-300">
+              {lang === "vi" ? "Kéo thả hoặc click chọn file .json cookies" : "Drag & drop or click to choose .json cookies file"}
+            </span>
             <span className="text-[10px] text-gray-500 mt-0.5">EditThisCookie / Puppeteer / Playwright JSON format</span>
             
             {fileFeedback && (
@@ -140,7 +155,9 @@ export function ImportCookiesDialog({
 
           {/* Textarea Option */}
           <div className="space-y-1.5">
-            <label className="block text-gray-400 font-medium">Hoặc dán mã JSON Cookie trực tiếp</label>
+            <label className="block text-gray-400 font-medium">
+              {lang === "vi" ? "Hoặc dán mã JSON Cookie trực tiếp" : "Or paste JSON Cookie code directly"}
+            </label>
             <textarea
               value={cookieJson}
               onChange={(e) => {
