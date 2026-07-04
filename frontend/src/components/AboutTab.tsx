@@ -33,7 +33,7 @@ export function AboutTab() {
               <span>•</span>
               <span className="flex items-center gap-1 text-green-400">
                 <CheckCircle className="h-3 w-3" />
-                <span>{lang === "vi" ? "Bản quyền vĩnh viễn" : "Lifetime License"}</span>
+                <span>{lang === "vi" ? "Bản phát hành miễn phí" : "Free Open Source Edition"}</span>
               </span>
             </div>
           </div>
@@ -48,8 +48,8 @@ export function AboutTab() {
             </h3>
             <p className="text-xs text-gray-400 leading-relaxed">
               {lang === "vi"
-                ? "Ngăn chặn theo dõi qua Canvas, WebGL, Audio, ClientRects, WebRTC, GeoIP, và User-Agent. Mỗi profile là một dấu vân tay độc bản."
-                : "Prevent tracking via Canvas, WebGL, Audio, ClientRects, WebRTC, GeoIP, and User-Agent. Every profile is a unique digital footprint."
+                ? "Tự động giả lập Canvas, WebGL, Audio, GPU, CPU Cores dựa trên seed và nhân trình duyệt CloakBrowser. Đồng bộ múi giờ và ngôn ngữ tự động qua GeoIP."
+                : "Automatically simulate Canvas, WebGL, Audio, GPU, and CPU Cores based on seed and CloakBrowser core. Synchronize timezone and language automatically via GeoIP."
               }
             </p>
           </div>
@@ -68,15 +68,15 @@ export function AboutTab() {
           </div>
         </div>
 
-        {/* Binary License Information */}
+        {/* Project License Information */}
         <div className="bg-surface-1 border border-border p-6 rounded-lg space-y-3">
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-            {lang === "vi" ? "Thông tin bản quyền & Bản quyền nhị phân" : "Copyright & Binary Licensing"}
+            {lang === "vi" ? "Giấy phép mã nguồn mở" : "Open Source License"}
           </h3>
           <p className="text-xs text-gray-400 leading-relaxed">
             {lang === "vi"
-              ? "Phần mềm được cung cấp dưới dạng giấy phép độc quyền thương mại của CloakBrowser Team. Vui lòng không sao chép trái phép, dịch ngược hoặc phân phối lại dưới bất kỳ hình thức nào."
-              : "This software is licensed under commercial terms by the CloakBrowser Team. Unauthorized copying, reverse engineering, or redistribution is strictly prohibited."
+              ? "Phần mềm được cung cấp miễn phí cho mục đích sử dụng cá nhân và phát triển tự động hóa. Vui lòng tuân thủ các điều khoản MIT và giấy phép nhị phân của CloakBrowser Core."
+              : "This software is provided free of charge for personal use and automation development. Please comply with the MIT terms and CloakBrowser Core binary licenses."
             }
           </p>
           <div className="pt-2">

@@ -7,7 +7,11 @@ for browser profile management with live VNC viewing.
 from __future__ import annotations
 
 import asyncio
+import sys
 import hmac
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 import logging
 import os
 import shutil
@@ -965,13 +969,10 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                             id, name, fingerprint_seed, proxy, timezone, locale, platform,
                             user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
                             hardware_concurrency, humanize, human_preset, geoip,
-                            clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                            auto_launch, color_scheme, launch_args, notes,
                             user_data_dir, created_at, updated_at,
-                            canvas_noise, client_rect_noise, webgl_noise, audio_noise,
-                            webgl_meta_masked, media_devices_masked, media_audio_inputs,
-                            media_audio_outputs, media_video_inputs, device_memory,
-                            browser_brand, is_deleted
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            is_deleted
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             new_id,
                             profile_data.get("name", "Imported Profile"),
@@ -989,7 +990,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                             1 if profile_data.get("humanize", True) else 0,
                             profile_data.get("human_preset", "default"),
                             1 if profile_data.get("geoip", True) else 0,
-                            1 if profile_data.get("clipboard_sync", True) else 0,
                             1 if profile_data.get("auto_launch", False) else 0,
                             profile_data.get("color_scheme"),
                             json.dumps(profile_data.get("launch_args", [])),
@@ -997,17 +997,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                             new_user_data_dir,
                             profile_data.get("created_at", now_str),
                             now_str,
-                            profile_data.get("canvas_noise", "off"),
-                            profile_data.get("client_rect_noise", "off"),
-                            profile_data.get("webgl_noise", "off"),
-                            profile_data.get("audio_noise", "on"),
-                            1 if profile_data.get("webgl_meta_masked", True) else 0,
-                            1 if profile_data.get("media_devices_masked", True) else 0,
-                            profile_data.get("media_audio_inputs", 2),
-                            profile_data.get("media_audio_outputs", 1),
-                            profile_data.get("media_video_inputs", 0),
-                            profile_data.get("device_memory", 4),
-                            profile_data.get("browser_brand"),
                             0
                         )
                     )
@@ -1084,13 +1073,10 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                                 id, name, fingerprint_seed, proxy, timezone, locale, platform,
                                 user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
                                 hardware_concurrency, humanize, human_preset, geoip,
-                                clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                                auto_launch, color_scheme, launch_args, notes,
                                 user_data_dir, created_at, updated_at,
-                                canvas_noise, client_rect_noise, webgl_noise, audio_noise,
-                                webgl_meta_masked, media_devices_masked, media_audio_inputs,
-                                media_audio_outputs, media_video_inputs, device_memory,
-                                browser_brand, is_deleted
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                                is_deleted
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
                                 new_id,
                                 profile_data.get("name", "Imported Profile"),
@@ -1108,7 +1094,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                                 1 if profile_data.get("humanize", True) else 0,
                                 profile_data.get("human_preset", "default"),
                                 1 if profile_data.get("geoip", True) else 0,
-                                1 if profile_data.get("clipboard_sync", True) else 0,
                                 1 if profile_data.get("auto_launch", False) else 0,
                                 profile_data.get("color_scheme"),
                                 json.dumps(profile_data.get("launch_args", [])),
@@ -1116,17 +1101,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                                 new_user_data_dir,
                                 profile_data.get("created_at", now_str),
                                 now_str,
-                                profile_data.get("canvas_noise", "off"),
-                                profile_data.get("client_rect_noise", "off"),
-                                profile_data.get("webgl_noise", "off"),
-                                profile_data.get("audio_noise", "on"),
-                                1 if profile_data.get("webgl_meta_masked", True) else 0,
-                                1 if profile_data.get("media_devices_masked", True) else 0,
-                                profile_data.get("media_audio_inputs", 2),
-                                profile_data.get("media_audio_outputs", 1),
-                                profile_data.get("media_video_inputs", 0),
-                                profile_data.get("device_memory", 4),
-                                profile_data.get("browser_brand"),
                                 0
                             )
                         )
@@ -1747,9 +1721,7 @@ async def get_settings():
         
     return AppSettings(
         profile_path=profile_path,
-        license_key=raw_settings.get("license_key"),
         language=raw_settings.get("language", "en"),
-        storage_type=raw_settings.get("storage_type", "local"),
         theme=raw_settings.get("theme", "dark"),
         reopen_tabs=to_bool(raw_settings.get("reopen_tabs")),
         auto_clear_cache=to_bool(raw_settings.get("auto_clear_cache")),
@@ -1757,7 +1729,7 @@ async def get_settings():
         no_trash=to_bool(raw_settings.get("no_trash")),
         default_extensions=raw_settings.get("default_extensions", "[]"),
         shared_extensions=raw_settings.get("shared_extensions", "[]"),
-        auto_update_cloakbrowser=to_bool(raw_settings.get("auto_update_cloakbrowser")),
+        auto_update_cloakbrowser=to_bool(raw_settings.get("auto_update_cloakbrowser", "true")),
     )
 
 @app.post("/api/settings", response_model=AppSettings)

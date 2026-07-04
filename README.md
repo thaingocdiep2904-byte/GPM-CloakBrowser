@@ -1,196 +1,111 @@
-<p align="center">
-<img src="https://i.imgur.com/cqkp6fG.png" width="500" alt="CloakBrowser">
-</p>
+# CloakBrowser Manager
 
-<h3 align="center">Browser Profile Manager for CloakBrowser</h3>
-
-<p align="center">
-Create, manage, and launch isolated browser profiles with unique fingerprints.<br>
-Free, self-hosted alternative to Multilogin, GoLogin, and AdsPower.
-</p>
-
-<p align="center">
-<a href="https://github.com/CloakHQ/CloakBrowser"><img src="https://img.shields.io/github/stars/cloakhq/cloakbrowser?label=CloakBrowser" alt="Stars"></a>
-<a href="https://hub.docker.com/r/cloakhq/cloakbrowser-manager"><img src="https://img.shields.io/docker/pulls/cloakhq/cloakbrowser-manager?label=docker&logo=docker&logoColor=white" alt="Docker Pulls"></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
-</p>
+Hệ thống quản lý profile trình duyệt antidetect chuyên nghiệp, tự lưu trữ (self-hosted), sử dụng nhân trình duyệt **CloakBrowser** (Chromium tùy biến chống phát hiện). Cho phép tạo, quản lý và tự động hóa hàng loạt profile độc lập với các dấu vân tay số độc bản.
 
 ---
 
-<p align="center">
-<img src="https://i.imgur.com/twdX81Q.png" width="800" alt="CloakBrowser Manager — Browser View">
-<br>
-<img src="https://i.imgur.com/XFYn1qY.png" width="800" alt="CloakBrowser Manager — Profile Settings">
-</p>
+## 🚀 Tính năng nổi bật
 
-Each profile is an isolated CloakBrowser instance with its own fingerprint, proxy, cookies, and session data. Profiles persist across restarts. Everything runs in one Docker container.
+- **Quản lý Profile Độc Lập:** Mỗi profile có cookie, bộ nhớ cục bộ, lịch sử và cache riêng biệt, hoàn toàn cô lập.
+- **Tự động hóa Vân Tay (Fingerprint Seed):** Cơ chế sinh thông số phần cứng (Canvas, WebGL, Audio, GPU, CPU Cores) tự động dựa trên `fingerprint_seed` độc bản của từng profile, đảm bảo tính tự nhiên tối đa mà không cần tinh chỉnh thủ công phức tạp.
+- **Đồng bộ Vùng Địa Lý (GeoIP):** Tự động phát hiện và đồng bộ hóa múi giờ (`timezone`) và ngôn ngữ (`locale`) dựa trên vị trí địa lý của Proxy IP được gán, giúp tăng điểm tin cậy đối với các hệ thống chống bot.
+- **Tự Động Cập Nhật (Auto Update):** Tự động kiểm tra và nâng cấp mã nguồn CloakBrowser cũng như nhân trình duyệt Chromium tương thích mới nhất khi khởi động Manager.
+- **Tự động hóa CDP (Playwright / Puppeteer):** Hỗ trợ đầy đủ giao thức Chrome DevTools Protocol (CDP) giúp bạn dễ dàng kết nối các script tự động hóa để điều khiển trình duyệt.
+- **Xem trực tiếp trong Web (VNC):** Tích hợp VNC trực tiếp trên giao diện quản trị giúp bạn theo dõi và tương tác trực quan với các profile trình duyệt đang chạy.
 
-```bash
-docker run -p 8080:8080 -v cloakprofiles:/data cloakhq/cloakbrowser-manager
+---
+
+## 🛠️ Hướng dẫn cài đặt & Khởi chạy nhanh trên Windows
+
+Ứng dụng hỗ trợ chạy trực tiếp trên Windows và cung cấp trình khởi chạy hoàn toàn tự động.
+
+### Cách 1: Khởi chạy Tự động (Khuyên dùng cho người dùng)
+
+Chỉ với một thao tác bấm, hệ thống sẽ tự động thiết lập toàn bộ môi trường từ đầu đến cuối:
+
+1. **Nhấp đúp chuột vào tệp `run.bat`** ở thư mục gốc của dự án.
+2. Trình khởi chạy sẽ tự động thực hiện:
+   * Tạo môi trường ảo Python (`.venv`) và cài đặt các thư viện backend cần thiết.
+   * Tải nhân trình duyệt Chromium tương thích của CloakBrowser.
+   * Cài đặt dependencies frontend và tự động biên dịch giao diện React (`npm run build`).
+   * Khởi chạy FastAPI backend ở cổng `8080`.
+   * Tự động mở trình duyệt Edge hoặc Chrome trên máy của bạn dưới dạng **App cửa sổ độc lập** kết nối thẳng vào giao diện quản lý.
+
+---
+
+### Cách 2: Khởi chạy Thủ công (Dành cho nhà phát triển phát triển tính năng)
+
+Nếu bạn muốn tùy chỉnh hoặc phát triển mã nguồn của ứng dụng, hãy khởi chạy thủ công hai phần riêng biệt:
+
+#### Yêu cầu chuẩn bị
+* Máy tính đã cài đặt **Python 3.10+** và **Node.js 18+**.
+
+#### Bước 1: Khởi chạy Backend (FastAPI)
+Mở một cửa sổ PowerShell hoặc Command Prompt tại thư mục dự án và chạy:
+```powershell
+# 1. Tạo môi trường ảo Python
+python -m venv .venv
+
+# 2. Kích hoạt môi trường ảo
+.venv\Scripts\activate
+
+# 3. Cài đặt các dependencies
+pip install -r backend/requirements.txt
+
+# 4. Thiết lập biến môi trường chỉ định thư mục lưu trữ profile
+$env:DATA_DIR="D:\APP\CloakBrowser\CloakBrowser-Manager\data"
+
+# 5. Khởi chạy backend FastAPI qua uvicorn
+python -m uvicorn backend.main:app --port 8080
 ```
 
-Or build from source:
-
-```bash
-git clone https://github.com/CloakHQ/CloakBrowser-Manager.git
-cd CloakBrowser-Manager
-docker compose up --build
-```
-
-Open [http://localhost:8080](http://localhost:8080) in your browser. Create a profile. Click Launch. Done.
-
-> **Early alpha** — this project is under active development. Expect bugs. If you find one, please [open an issue](https://github.com/CloakHQ/CloakBrowser-Manager/issues).
-
-## Why Not Just Use a VPN?
-
-A VPN only changes your IP. Incognito only clears cookies. Chrome profiles share the same hardware fingerprint underneath. Platforms use 50+ signals to link your accounts — canvas, WebGL, audio, GPU, fonts, screen size, timezone.
-
-Each CloakBrowser profile generates a completely different device identity. To the website, each profile looks like a different computer.
-
-| Solution | What it changes | Accounts linked? |
-|----------|----------------|-----------------|
-| VPN | IP address only | Yes — same fingerprint |
-| Incognito | Clears cookies | Yes — same fingerprint |
-| Chrome profiles | Separate bookmarks/cookies | Yes — same hardware fingerprint |
-| **CloakBrowser** | **Everything — full device identity per profile** | **No** |
-
-## Features
-
-- **Profile management** — create, edit, delete browser profiles with unique fingerprints
-- **Per-profile settings** — fingerprint seed, proxy, timezone, locale, user agent, screen size, platform
-- **One-click launch/stop** — each profile runs as an isolated CloakBrowser instance
-- **Session persistence** — cookies, localStorage, and cache survive browser restarts
-- **In-browser viewing** — interact with launched browsers via noVNC, directly in the web GUI
-- **Playwright/Puppeteer API** — connect to any running profile programmatically via CDP, while still watching it live in the browser
-- **Optional authentication** — protect the web UI and API with a single token, or run wide open locally
-- **Powered by CloakBrowser** — 32 source-level C++ patches, passes Cloudflare Turnstile, 0.9 reCAPTCHA v3 score
-
-## Stack
-
-- **Backend**: FastAPI (Python)
-- **Frontend**: React + Tailwind CSS
-- **Browser viewer**: noVNC (WebSocket-based VNC client)
-- **Database**: SQLite
-- **Browser engine**: [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) (stealth Chromium binary)
-
-## Development
-
-### Backend
-
-```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8080
-```
-
-### Frontend
-
-```bash
+#### Bước 2: Khởi chạy Frontend (React + Vite)
+Mở một cửa sổ dòng lệnh thứ hai tại thư mục dự án và chạy:
+```powershell
+# 1. Đi tới thư mục frontend
 cd frontend
+
+# 2. Cài đặt dependencies (chỉ cần chạy lần đầu)
 npm install
+
+# 3. Chạy Vite dev server
 npm run dev
 ```
+Sau đó truy cập địa chỉ [http://localhost:5173](http://localhost:5173) để xem giao diện phát triển có chế độ Hot-Reload.
 
-### Docker
+---
 
-```bash
-docker compose up --build
-```
+## ⚙️ Cấu hình Tự động hóa (Playwright Python Sample)
 
-## Requirements
-
-- Docker (20.10+)
-- ~2 GB disk (image + binary)
-- ~512 MB RAM per running profile
-
-## Updating
-
-Pull the latest image and restart:
-
-```bash
-docker pull cloakhq/cloakbrowser-manager
-docker stop <container-id>
-docker run -p 8080:8080 -v cloakprofiles:/data cloakhq/cloakbrowser-manager
-```
-
-Your profiles and session data are stored in the `cloakprofiles` volume and persist across updates.
-
-## Automation API
-
-Every running profile exposes a CDP (Chrome DevTools Protocol) endpoint. Connect Playwright or Puppeteer to automate a profile while watching it live in the browser.
+Mỗi profile khi khởi chạy sẽ tự động mở một cổng CDP ngẫu nhiên (từ `5100` đến `5199`). Bạn có thể kết nối Playwright trực tiếp qua cổng CDP này:
 
 ```python
-from playwright.async_api import async_playwright
+import requests
+from playwright.sync_api import sync_playwright
 
-async with async_playwright() as pw:
-    browser = await pw.chromium.connect_over_cdp(
-        "http://localhost:8080/api/profiles/<profile-id>/cdp"
-    )
-    page = browser.contexts[0].pages[0]
-    await page.goto("https://example.com")
+MANAGER_URL = "http://localhost:8080"
+PROFILE_ID = "UUID_CỦA_PROFILE"
+
+def main():
+    # 1. Khởi chạy profile thông qua API
+    requests.post(f"{MANAGER_URL}/api/profiles/{PROFILE_ID}/launch")
+    
+    # 2. Lấy thông tin trạng thái profile (bao gồm CDP Port)
+    status_res = requests.get(f"{MANAGER_URL}/api/profiles/{PROFILE_ID}/status")
+    status_data = status_res.json()
+    cdp_port = status_data.get("cdp_port") or 5100
+    
+    # 3. Sử dụng Playwright kết nối tới Browser Instance đang chạy
+    with sync_playwright() as p:
+        browser = p.chromium.connect_over_cdp(f"http://127.0.0.1:{cdp_port}")
+        context = browser.contexts[0]
+        page = context.pages[0] if context.pages else context.new_page()
+        
+        # 4. Điều khiển trình duyệt
+        page.goto("https://bot-detector.rebrowser.net/")
+        print("Tiêu đề trang:", page.title())
+        browser.close()
+
+if __name__ == "__main__":
+    main()
 ```
-
-```javascript
-const { chromium } = require("playwright");
-
-const browser = await chromium.connectOverCDP(
-  "http://localhost:8080/api/profiles/<profile-id>/cdp"
-);
-const page = browser.contexts()[0].pages()[0];
-await page.goto("https://example.com");
-```
-
-The CDP URL is available in the toolbar (code icon) when a profile is running. The same browser session is accessible both visually through VNC and programmatically through the API.
-
-## Remote Access
-
-The container binds to localhost only. To access from a remote server:
-
-```bash
-ssh -L 8080:localhost:8080 your-server
-```
-
-Then open `http://localhost:8080`.
-
-## Authentication
-
-By default, there is no authentication (ideal for local use). To protect the web UI and API when hosting on a network, set the `AUTH_TOKEN` environment variable:
-
-```bash
-docker run -p 8080:8080 -v cloakprofiles:/data -e AUTH_TOKEN=your-secret-token cloakhq/cloakbrowser-manager
-```
-
-Or in `docker-compose.yml`:
-
-```yaml
-environment:
-  - AUTH_TOKEN=your-secret-token
-```
-
-When `AUTH_TOKEN` is set:
-
-- The web UI shows a login page. Enter the token to unlock.
-- API consumers pass the token via `Authorization: Bearer <token>` header.
-- VNC WebSocket connections are authenticated via the login cookie.
-- The `/api/status` endpoint remains unauthenticated (for Docker healthcheck).
-
-> **Note**: The auth token is transmitted in cleartext over HTTP. If you expose the Manager to the internet, put it behind a reverse proxy with HTTPS (Caddy, nginx, Traefik).
-
-## License
-
-- **This application** (GUI source code) — MIT. See [LICENSE](LICENSE).
-- **CloakBrowser binary** (compiled Chromium) — free to use, no redistribution. See [BINARY-LICENSE.md](BINARY-LICENSE.md).
-
-The GUI application requires the CloakBrowser Chromium binary to function. The binary is automatically downloaded on first launch and is governed by its own license terms. If you fork or redistribute this application, your users must comply with the [CloakBrowser Binary License](BINARY-LICENSE.md).
-
-## Contributing
-
-Contributions are welcome. Please [open an issue](https://github.com/CloakHQ/CloakBrowser-Manager/issues) first to discuss what you'd like to change.
-
-## Links
-
-- **CloakBrowser** — [github.com/CloakHQ/CloakBrowser](https://github.com/CloakHQ/CloakBrowser)
-- **Website** — [cloakbrowser.dev](https://cloakbrowser.dev)
-- **Bug reports** — [GitHub Issues](https://github.com/CloakHQ/CloakBrowser-Manager/issues)
-- **Contact** — cloakhq@pm.me

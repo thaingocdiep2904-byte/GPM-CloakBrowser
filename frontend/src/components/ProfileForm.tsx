@@ -102,17 +102,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
     auto_launch: false,
     launch_args: [],
     tags: [],
-    canvas_noise: "off",
-    client_rect_noise: "off",
-    webgl_noise: "off",
-    audio_noise: "on",
-    webgl_meta_masked: true,
-    media_devices_masked: true,
-    media_audio_inputs: 2,
-    media_audio_outputs: 1,
-    media_video_inputs: 0,
-    device_memory: 4,
-    browser_brand: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -149,28 +138,10 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
         launch_args: cleanArgs,
         notes: profile.notes,
         tags: profile.tags ?? [],
-        canvas_noise: profile.canvas_noise ?? "off",
-        client_rect_noise: profile.client_rect_noise ?? "off",
-        webgl_noise: profile.webgl_noise ?? "off",
-        audio_noise: profile.audio_noise ?? "on",
-        webgl_meta_masked: profile.webgl_meta_masked !== undefined ? profile.webgl_meta_masked : true,
-        media_devices_masked: profile.media_devices_masked !== undefined ? profile.media_devices_masked : true,
-        media_audio_inputs: profile.media_audio_inputs ?? 2,
-        media_audio_outputs: profile.media_audio_outputs ?? 1,
-        media_video_inputs: profile.media_video_inputs ?? 0,
-        device_memory: profile.device_memory ?? 4,
-        browser_brand: profile.browser_brand ?? "",
       });
     } else {
       setStartupUrl("");
       const newSeed = Math.floor(Math.random() * 90000) + 10000;
-      const cpuOptions = [4, 6, 8, 12, 16];
-      const newCpu = cpuOptions[Math.floor(Math.random() * cpuOptions.length)];
-      const ramOptions = [4, 8, 12, 16, 32];
-      const newRam = ramOptions[Math.floor(Math.random() * ramOptions.length)];
-      const gpuKeys = Object.keys(GPU_PRESETS);
-      const randomGpuKey = gpuKeys[Math.floor(Math.random() * gpuKeys.length)] as string;
-      const preset = randomGpuKey ? GPU_PRESETS[randomGpuKey] : undefined;
 
       setForm({
         name: "",
@@ -183,21 +154,10 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
         auto_launch: false,
         launch_args: [],
         tags: [],
-        canvas_noise: Math.random() > 0.5 ? "on" : "off",
-        client_rect_noise: "off",
-        webgl_noise: Math.random() > 0.5 ? "on" : "off",
-        audio_noise: "on",
-        webgl_meta_masked: true,
-        media_devices_masked: true,
-        media_audio_inputs: 2,
-        media_audio_outputs: 1,
-        media_video_inputs: 0,
         fingerprint_seed: newSeed,
-        hardware_concurrency: newCpu,
-        device_memory: newRam,
-        gpu_vendor: preset?.vendor || "Google Inc. (NVIDIA)",
-        gpu_renderer: preset?.renderer || "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 (0x00002484) Direct3D11 vs_5_0 ps_5_0, D3D11)",
-        browser_brand: "",
+        hardware_concurrency: null,
+        gpu_vendor: null,
+        gpu_renderer: null,
       });
     }
   }, [profile?.id]);
@@ -238,25 +198,13 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
 
   const handleRandomizeAll = () => {
     const newSeed = Math.floor(Math.random() * 90000) + 10000;
-    const cpuOptions = [4, 6, 8, 12, 16, 20];
-    const newCpu = cpuOptions[Math.floor(Math.random() * cpuOptions.length)];
-    const ramOptions = [4, 8, 12, 16, 32];
-    const newRam = ramOptions[Math.floor(Math.random() * ramOptions.length)];
-
-    const gpuKeys = Object.keys(GPU_PRESETS);
-    const randomGpuKey = gpuKeys[Math.floor(Math.random() * gpuKeys.length)] as string;
-    const preset = randomGpuKey ? GPU_PRESETS[randomGpuKey] : undefined;
 
     setForm((prev) => ({
       ...prev,
       fingerprint_seed: newSeed,
-      hardware_concurrency: newCpu,
-      device_memory: newRam,
-      gpu_vendor: preset?.vendor || prev.gpu_vendor || "Google Inc. (NVIDIA)",
-      gpu_renderer: preset?.renderer || prev.gpu_renderer || "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 (0x00002484) Direct3D11 vs_5_0 ps_5_0, D3D11)",
-      canvas_noise: Math.random() > 0.5 ? "on" : "off",
-      audio_noise: Math.random() > 0.5 ? "on" : "off",
-      webgl_noise: Math.random() > 0.5 ? "on" : "off",
+      hardware_concurrency: null,
+      gpu_vendor: null,
+      gpu_renderer: null,
     }));
   };
 
@@ -388,19 +336,7 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
                     <option value="linux">Linux</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-gray-400 mb-1.5 font-medium">Browser Brand</label>
-                  <select
-                    className="input w-full bg-surface-2 border border-border rounded px-3 py-2 text-white text-xs"
-                    value={(form as any).browser_brand ?? ""}
-                    onChange={(e) => set("browser_brand" as any, e.target.value || null)}
-                  >
-                    <option value="">Chrome ({lang === "vi" ? "Mặc định" : "Default"})</option>
-                    <option value="Edge">Microsoft Edge</option>
-                    <option value="Opera">Opera</option>
-                    <option value="Vivaldi">Vivaldi</option>
-                  </select>
-                </div>
+
                 <div>
                   <label className="block text-gray-400 mb-1.5 font-medium">Browser Fingerprint (Seed)</label>
                   <div className="flex gap-2">
@@ -714,157 +650,59 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
                 )}
               </div>
 
-              {/* Canvas, Client rect, WebGL, Audio noise */}
-              <div className="grid grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-gray-400 mb-1 font-medium">Canvas noise</label>
-                  <select
-                    className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                    value={form.canvas_noise ?? "off"}
-                    onChange={(e) => set("canvas_noise", e.target.value)}
-                  >
-                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
-                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-400 mb-1 font-medium">Client rect noise</label>
-                  <select
-                    className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                    value={form.client_rect_noise ?? "off"}
-                    onChange={(e) => set("client_rect_noise", e.target.value)}
-                  >
-                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
-                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-400 mb-1 font-medium">WebGL image noise</label>
-                  <select
-                    className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                    value={form.webgl_noise ?? "off"}
-                    onChange={(e) => set("webgl_noise", e.target.value)}
-                  >
-                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
-                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-400 mb-1 font-medium">Audio noise</label>
-                  <select
-                    className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                    value={form.audio_noise ?? "on"}
-                    onChange={(e) => set("audio_noise", e.target.value)}
-                  >
-                    <option value="off">Off ({lang === "vi" ? "Tắt" : "Off"})</option>
-                    <option value="on">On ({lang === "vi" ? "Bật" : "On"})</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* WebGL Meta masked */}
-              <div className="space-y-2 border-t border-border/40 pt-3">
-                <label className="flex items-center gap-2 text-gray-300 cursor-pointer select-none font-medium">
-                  <input
-                    type="checkbox"
-                    checked={form.webgl_meta_masked ?? true}
-                    onChange={(e) => set("webgl_meta_masked", e.target.checked)}
-                    className="rounded border-border bg-surface-2 h-4 w-4 text-accent focus:ring-0"
-                  />
-                  <span>
-                    {lang === "vi" ? "WebGL Meta masked (Ẩn danh thông số card màn hình)" : "WebGL Meta masked (Spoof graphic card details)"}
-                  </span>
+              {/* GPU Spoofing Details (GPU Vendor & GPU Renderer) */}
+              <div className="space-y-2.5 border-t border-border/40 pt-3">
+                <label className="block text-gray-300 font-medium">
+                  {lang === "vi" ? "Thông tin Card màn hình (GPU)" : "Graphic Card Details (GPU)"}
                 </label>
-                {form.webgl_meta_masked && (
-                  <div className="grid grid-cols-1 gap-2.5 pl-6">
-                    <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">
-                        {lang === "vi" ? "Mẫu GPU Presets" : "GPU Presets"}
-                      </label>
-                      <select
-                        className="input w-full bg-surface-2 border border-border rounded px-3 py-1.5 text-white text-xs"
-                        value=""
-                        onChange={(e) => { if (e.target.value) applyGpuPreset(e.target.value); }}
-                      >
-                        <option value="">-- {lang === "vi" ? "Thiết lập mặc định" : "Default preset"} --</option>
-                        {Object.keys(GPU_PRESETS).map((name) => (
-                          <option key={name} value={name}>{name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">GPU Vendor</label>
-                        <input
-                          className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs font-mono"
-                          value={form.gpu_vendor ?? ""}
-                          onChange={(e) => set("gpu_vendor", e.target.value || null)}
-                          placeholder={lang === "vi" ? "Mặc định tự động tạo" : "Auto-generated by default"}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-gray-500 mb-0.5">GPU Renderer</label>
-                        <input
-                          className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs font-mono"
-                          value={form.gpu_renderer ?? ""}
-                          onChange={(e) => set("gpu_renderer", e.target.value || null)}
-                          placeholder={lang === "vi" ? "Mặc định tự động tạo" : "Auto-generated by default"}
-                        />
-                      </div>
-                    </div>
+                <div className="grid grid-cols-1 gap-2.5 pl-2">
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">
+                      {lang === "vi" ? "Mẫu GPU Presets" : "GPU Presets"}
+                    </label>
+                    <select
+                      className="input w-full bg-surface-2 border border-border rounded px-3 py-1.5 text-white text-xs"
+                      value={Object.keys(GPU_PRESETS).find(name => GPU_PRESETS[name]?.vendor === form.gpu_vendor && GPU_PRESETS[name]?.renderer === form.gpu_renderer) ?? ""}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          applyGpuPreset(e.target.value);
+                        } else {
+                          set("gpu_vendor", null);
+                          set("gpu_renderer", null);
+                        }
+                      }}
+                    >
+                      <option value="">{lang === "vi" ? "Tự động (Theo Seed)" : "Auto (Based on Seed)"}</option>
+                      {Object.keys(GPU_PRESETS).map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
-              </div>
-
-              {/* Media devices masked */}
-              <div className="space-y-2 border-t border-border/40 pt-3">
-                <label className="flex items-center gap-2 text-gray-300 cursor-pointer select-none font-medium">
-                  <input
-                    type="checkbox"
-                    checked={form.media_devices_masked ?? true}
-                    onChange={(e) => set("media_devices_masked", e.target.checked)}
-                    className="rounded border-border bg-surface-2 h-4 w-4 text-accent focus:ring-0"
-                  />
-                  <span>Media devices masked (Audio inputs / Audio outputs / Video inputs)</span>
-                </label>
-                {form.media_devices_masked && (
-                  <div className="grid grid-cols-3 gap-3 pl-6">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10px] text-gray-500 mb-0.5">Audio Inputs (Microphone)</label>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">GPU Vendor</label>
                       <input
-                        className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                        type="number"
-                        min={0}
-                        value={form.media_audio_inputs ?? 2}
-                        onChange={(e) => set("media_audio_inputs", Number(e.target.value))}
+                        className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs font-mono"
+                        value={form.gpu_vendor ?? ""}
+                        onChange={(e) => set("gpu_vendor", e.target.value || null)}
+                        placeholder="auto"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-gray-500 mb-0.5">Audio Outputs (Speaker)</label>
+                      <label className="block text-[10px] text-gray-500 mb-0.5">GPU Renderer</label>
                       <input
-                        className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                        type="number"
-                        min={0}
-                        value={form.media_audio_outputs ?? 1}
-                        onChange={(e) => set("media_audio_outputs", Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] text-gray-500 mb-0.5">Video Inputs (Camera)</label>
-                      <input
-                        className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                        type="number"
-                        min={0}
-                        value={form.media_video_inputs ?? 0}
-                        onChange={(e) => set("media_video_inputs", Number(e.target.value))}
+                        className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs font-mono"
+                        value={form.gpu_renderer ?? ""}
+                        onChange={(e) => set("gpu_renderer", e.target.value || null)}
+                        placeholder="auto"
                       />
                     </div>
                   </div>
-                )}
+                </div>
               </div>
 
-              {/* CPU core, RAM, Storage Quota, MAC address */}
-              <div className="grid grid-cols-4 gap-3 border-t border-border/40 pt-3">
+              {/* CPU core */}
+              <div className="grid grid-cols-2 gap-3 border-t border-border/40 pt-3">
                 <div>
                   <label className="block text-gray-400 mb-1 font-medium">
                     {lang === "vi" ? "Số nhân CPU" : "CPU Cores"}
@@ -883,24 +721,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
                     <option value="16">16 {lang === "vi" ? "nhân" : "cores"}</option>
                     <option value="20">20 {lang === "vi" ? "nhân" : "cores"}</option>
                     <option value="24">24 {lang === "vi" ? "nhân" : "cores"}</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-400 mb-1 font-medium">
-                    {lang === "vi" ? "Dung lượng RAM" : "RAM Memory"}
-                  </label>
-                  <select
-                    className="input w-full bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs"
-                    value={form.device_memory ?? 4}
-                    onChange={(e) => set("device_memory", Number(e.target.value))}
-                  >
-                    <option value="2">2 GB</option>
-                    <option value="4">4 GB</option>
-                    <option value="8">8 GB</option>
-                    <option value="12">12 GB</option>
-                    <option value="16">16 GB</option>
-                    <option value="24">24 GB</option>
-                    <option value="32">32 GB</option>
                   </select>
                 </div>
               </div>
@@ -972,18 +792,12 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-border/30">
+            <div className="pt-1.5 border-t border-border/30">
               <div>
                 <span className="text-[10px] text-gray-500 font-medium block">
                   {lang === "vi" ? "Màn hình (Screen)" : "Resolution"}
                 </span>
                 <span className="text-white font-mono">{form.screen_width} × {form.screen_height}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-500 font-medium block">
-                  {lang === "vi" ? "Dung lượng RAM" : "RAM Memory"}
-                </span>
-                <span className="text-white font-medium">{form.device_memory} GB</span>
               </div>
             </div>
 
@@ -1006,55 +820,13 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-border/30">
+            <div className="pt-1.5 border-t border-border/30">
               <div>
                 <span className="text-[10px] text-gray-500 font-medium block">
                   {lang === "vi" ? "Số nhân CPU" : "CPU Cores"}
                 </span>
                 <span className="text-white font-mono">
                   {form.hardware_concurrency ?? (lang === "vi" ? "Tự động" : "Auto")} cores
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-gray-500 font-medium block">
-                  {lang === "vi" ? "Dung lượng RAM" : "RAM Memory"}
-                </span>
-                <span className="text-white font-mono">
-                  {form.device_memory ? `${form.device_memory} GB` : (lang === "vi" ? "Tự động" : "Auto")}
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-1.5 border-t border-border/30">
-              <div>
-                <span className="text-[10px] text-gray-500 font-medium block">Browser Brand</span>
-                <span className="text-white font-medium">{form.browser_brand || "Chrome"}</span>
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-border/30 space-y-1.5">
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-gray-500 font-medium">Canvas Noise</span>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${form.canvas_noise === 'on' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-3 text-gray-400'}`}>
-                  {form.canvas_noise === 'on' ? 'NOISE' : 'OFF'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-gray-500 font-medium">Client Rect Noise</span>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${form.client_rect_noise === 'on' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-3 text-gray-400'}`}>
-                  {form.client_rect_noise === 'on' ? 'NOISE' : 'OFF'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-gray-500 font-medium">WebGL Meta</span>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${form.webgl_meta_masked ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-3 text-gray-400'}`}>
-                  {form.webgl_meta_masked ? 'MASKED' : 'REAL'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-[11px]">
-                <span className="text-gray-500 font-medium">Audio Context</span>
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${form.audio_noise === 'on' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-surface-3 text-gray-400'}`}>
-                  {form.audio_noise === 'on' ? 'NOISE' : 'OFF'}
                 </span>
               </div>
             </div>

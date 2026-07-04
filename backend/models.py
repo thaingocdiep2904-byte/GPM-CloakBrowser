@@ -23,23 +23,11 @@ class ProfileCreate(BaseModel):
     humanize: bool = True
     human_preset: Literal["default", "careful"] = "default"
     geoip: bool = True
-    clipboard_sync: bool = True
     auto_launch: bool = False
     color_scheme: Literal["light", "dark", "no-preference"] | None = None
     launch_args: list[str] = Field(default_factory=list)
     notes: str | None = None
     tags: list[TagCreate] | None = None
-    canvas_noise: str | None = "off"
-    client_rect_noise: str | None = "off"
-    webgl_noise: str | None = "off"
-    audio_noise: str | None = "on"
-    webgl_meta_masked: bool | None = True
-    media_devices_masked: bool | None = True
-    media_audio_inputs: int | None = 2
-    media_audio_outputs: int | None = 1
-    media_video_inputs: int | None = 0
-    device_memory: int | None = 4
-    browser_brand: str | None = None
 
 
 class ProfileUpdate(BaseModel):
@@ -58,23 +46,11 @@ class ProfileUpdate(BaseModel):
     humanize: bool | None = None
     human_preset: Literal["default", "careful"] | None = None
     geoip: bool | None = None
-    clipboard_sync: bool | None = None
     auto_launch: bool | None = None
     color_scheme: Literal["light", "dark", "no-preference"] | None = Field(default=None)
     launch_args: list[str] | None = None
     notes: str | None = Field(default=None)
     tags: list[TagCreate] | None = None
-    canvas_noise: str | None = None
-    client_rect_noise: str | None = None
-    webgl_noise: str | None = None
-    audio_noise: str | None = None
-    webgl_meta_masked: bool | None = None
-    media_devices_masked: bool | None = None
-    media_audio_inputs: int | None = None
-    media_audio_outputs: int | None = None
-    media_video_inputs: int | None = None
-    device_memory: int | None = None
-    browser_brand: str | None = Field(default=None)
 
 
 class TagCreate(BaseModel):
@@ -104,25 +80,7 @@ class ProfileResponse(BaseModel):
     humanize: bool = True
     human_preset: str = "default"
     geoip: bool = True
-    clipboard_sync: bool = True
     auto_launch: bool = False
-    canvas_noise: str | None = "off"
-    client_rect_noise: str | None = "off"
-    webgl_noise: str | None = "off"
-    audio_noise: str | None = "on"
-    webgl_meta_masked: bool | None = True
-    media_devices_masked: bool | None = True
-    media_audio_inputs: int | None = 2
-    media_audio_outputs: int | None = 1
-    media_video_inputs: int | None = 0
-    device_memory: int | None = 4
-    browser_brand: str | None = None
-
-    @field_validator("clipboard_sync", mode="before")
-    @classmethod
-    def coerce_clipboard_sync(cls, v: object) -> bool:
-        return v if v is not None else True
-
     color_scheme: str | None = None
     launch_args: list[str] = []
     notes: str | None = None
@@ -177,7 +135,6 @@ class BulkCreateRequest(BaseModel):
     screen_height: int = 1080
     humanize: bool = True
     geoip: bool = True
-    clipboard_sync: bool = True
     auto_launch: bool = False
     notes: str | None = None
     tags: list[TagCreate] | None = None
@@ -236,9 +193,7 @@ class BulkImportRequest(BaseModel):
 
 class AppSettings(BaseModel):
     profile_path: str | None = None
-    license_key: str | None = "CLOAK-XXXX-XXXX-XXXX"
     language: Literal["en", "vi"] | None = "vi"
-    storage_type: Literal["local", "s3"] | None = "local"
     theme: Literal["light", "dark"] | None = "dark"
     reopen_tabs: bool | None = False
     auto_clear_cache: bool | None = True
@@ -246,7 +201,7 @@ class AppSettings(BaseModel):
     no_trash: bool | None = False
     default_extensions: str | None = "[]"
     shared_extensions: str | None = "[]"
-    auto_update_cloakbrowser: bool | None = False
+    auto_update_cloakbrowser: bool | None = True
 
 
 class ExtensionResponse(BaseModel):

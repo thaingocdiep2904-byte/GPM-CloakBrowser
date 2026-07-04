@@ -835,7 +835,7 @@ export function ProfileTable({
       </div>
 
       {/* 4. Table Content List */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto px-4 pb-4 pt-0">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-500 text-sm gap-2">
             <Info className="h-8 w-8 text-gray-600" />
@@ -844,7 +844,7 @@ export function ProfileTable({
         ) : (
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-border text-gray-400 font-semibold bg-surface-1 sticky top-0 z-10">
+              <tr className="border-b border-border text-gray-400 font-semibold bg-surface-1 sticky top-0 z-10 text-sm">
                 <th className="py-3 px-4">{t("table.col_name")}</th>
                 <th className="py-3 px-4 w-32">Group</th>
                 <th className="py-3 px-4 w-20">{t("table.col_os")}</th>

@@ -48,6 +48,7 @@ def init_db():
                 proxy TEXT,
                 timezone TEXT,
                 locale TEXT,
+                geoip BOOLEAN DEFAULT 1,
                 platform TEXT DEFAULT 'windows',
                 user_agent TEXT,
                 screen_width INTEGER DEFAULT 1920,
@@ -57,25 +58,12 @@ def init_db():
                 hardware_concurrency INTEGER,
                 humanize BOOLEAN DEFAULT 1,
                 human_preset TEXT DEFAULT 'default',
-                geoip BOOLEAN DEFAULT 1,
-                clipboard_sync BOOLEAN DEFAULT 1,
                 auto_launch BOOLEAN DEFAULT 0,
                 color_scheme TEXT,
                 notes TEXT,
                 user_data_dir TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
-                canvas_noise TEXT DEFAULT 'off',
-                client_rect_noise TEXT DEFAULT 'off',
-                webgl_noise TEXT DEFAULT 'off',
-                audio_noise TEXT DEFAULT 'on',
-                webgl_meta_masked BOOLEAN DEFAULT 1,
-                media_devices_masked BOOLEAN DEFAULT 1,
-                media_audio_inputs INTEGER DEFAULT 2,
-                media_audio_outputs INTEGER DEFAULT 1,
-                media_video_inputs INTEGER DEFAULT 0,
-                device_memory INTEGER DEFAULT 4,
-                browser_brand TEXT,
                 is_deleted BOOLEAN DEFAULT 0
             );
 
@@ -111,9 +99,7 @@ def init_db():
 
         # Migrations for existing databases
         cols = {row[1] for row in conn.execute("PRAGMA table_info(profiles)").fetchall()}
-        if "clipboard_sync" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN clipboard_sync BOOLEAN DEFAULT 1")
-            conn.commit()
+
         if "launch_args" not in cols:
             conn.execute("ALTER TABLE profiles ADD COLUMN launch_args TEXT DEFAULT '[]'")
             conn.commit()
@@ -127,31 +113,19 @@ def init_db():
             conn.execute("ALTER TABLE profiles ADD COLUMN is_deleted BOOLEAN DEFAULT 0")
             conn.commit()
             
-        # Hardware fingerprints migrations
-        if "canvas_noise" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN canvas_noise TEXT DEFAULT 'off'")
-        if "client_rect_noise" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN client_rect_noise TEXT DEFAULT 'off'")
-        if "webgl_noise" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN webgl_noise TEXT DEFAULT 'off'")
-        if "audio_noise" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN audio_noise TEXT DEFAULT 'on'")
-        if "webgl_meta_masked" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN webgl_meta_masked BOOLEAN DEFAULT 1")
-        if "media_devices_masked" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN media_devices_masked BOOLEAN DEFAULT 1")
-        if "media_audio_inputs" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN media_audio_inputs INTEGER DEFAULT 2")
-        if "media_audio_outputs" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN media_audio_outputs INTEGER DEFAULT 1")
-        if "media_video_inputs" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN media_video_inputs INTEGER DEFAULT 0")
-        if "device_memory" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN device_memory INTEGER DEFAULT 4")
-        if "browser_brand" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN browser_brand TEXT")
-        
-        # Thực sự xóa cột vật lý khỏi database SQLite
+        # Thực sự xóa cột vật lý không hoạt động khỏi database SQLite
+        for old_col in (
+            "canvas_noise", "client_rect_noise", "webgl_noise", "audio_noise",
+            "webgl_meta_masked", "media_devices_masked", "media_audio_inputs",
+            "media_audio_outputs", "media_video_inputs", "device_memory", "browser_brand",
+            "clipboard_sync"
+        ):
+            if old_col in cols:
+                try:
+                    conn.execute(f"ALTER TABLE profiles DROP COLUMN {old_col}")
+                except Exception as e:
+                    logger.warning("Không thể xóa cột %s bằng ALTER TABLE DROP COLUMN: %s", old_col, e)
+                    
         if "mac_address" in cols:
             try:
                 conn.execute("ALTER TABLE profiles DROP COLUMN mac_address")
@@ -188,13 +162,9 @@ def create_profile(
                 id, name, fingerprint_seed, proxy, timezone, locale, platform,
                 user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
                 hardware_concurrency, humanize, human_preset, geoip,
-                clipboard_sync, auto_launch, color_scheme, launch_args, notes,
-                user_data_dir, created_at, updated_at,
-                canvas_noise, client_rect_noise, webgl_noise, audio_noise,
-                webgl_meta_masked, media_devices_masked, media_audio_inputs,
-                media_audio_outputs, media_video_inputs, device_memory,
-                browser_brand
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                auto_launch, color_scheme, launch_args, notes,
+                user_data_dir, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 profile_id, name, seed,
                 fields.get("proxy"),
@@ -210,23 +180,11 @@ def create_profile(
                 fields.get("humanize", True),
                 fields.get("human_preset", "default"),
                 fields.get("geoip", True),
-                fields.get("clipboard_sync", True),
                 fields.get("auto_launch", False),
                 fields.get("color_scheme"),
                 json.dumps(fields.get("launch_args") or []),
                 fields.get("notes"),
                 user_data_dir, now, now,
-                fields.get("canvas_noise", "off"),
-                fields.get("client_rect_noise", "off"),
-                fields.get("webgl_noise", "off"),
-                fields.get("audio_noise", "on"),
-                fields.get("webgl_meta_masked", True),
-                fields.get("media_devices_masked", True),
-                fields.get("media_audio_inputs", 2),
-                fields.get("media_audio_outputs", 1),
-                fields.get("media_video_inputs", 0),
-                fields.get("device_memory", 4),
-                fields.get("browser_brand"),
             ),
         )
         for t in tags:
@@ -332,11 +290,7 @@ def update_profile(profile_id: str, **fields: Any) -> dict[str, Any] | None:
             "name", "fingerprint_seed", "proxy", "timezone", "locale", "platform",
             "user_agent", "screen_width", "screen_height", "gpu_vendor", "gpu_renderer",
             "hardware_concurrency", "humanize", "human_preset", "geoip",
-            "clipboard_sync", "auto_launch", "color_scheme", "launch_args", "notes", "last_run",
-            "canvas_noise", "client_rect_noise", "webgl_noise", "audio_noise",
-            "webgl_meta_masked", "media_devices_masked", "media_audio_inputs",
-            "media_audio_outputs", "media_video_inputs", "device_memory",
-            "browser_brand",
+            "auto_launch", "color_scheme", "launch_args", "notes", "last_run",
         ):
             if col in fields:
                 update_cols.append(f"{col} = ?")
@@ -403,9 +357,9 @@ def bulk_create_profiles(
                     id, name, fingerprint_seed, proxy, timezone, locale, platform,
                     user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
                     hardware_concurrency, humanize, human_preset, geoip,
-                    clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                    auto_launch, color_scheme, launch_args, notes,
                     user_data_dir, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     profile_id, name, seed,
                     proxy,
@@ -421,7 +375,6 @@ def bulk_create_profiles(
                     fields.get("humanize", True),
                     fields.get("human_preset", "default"),
                     fields.get("geoip", True),
-                    fields.get("clipboard_sync", True),
                     fields.get("auto_launch", False),
                     fields.get("color_scheme"),
                     json.dumps(fields.get("launch_args") or []),
@@ -452,7 +405,6 @@ def bulk_create_profiles(
                 "humanize": fields.get("humanize", True),
                 "human_preset": fields.get("human_preset", "default"),
                 "geoip": fields.get("geoip", True),
-                "clipboard_sync": fields.get("clipboard_sync", True),
                 "auto_launch": fields.get("auto_launch", False),
                 "color_scheme": fields.get("color_scheme"),
                 "launch_args": fields.get("launch_args") or [],

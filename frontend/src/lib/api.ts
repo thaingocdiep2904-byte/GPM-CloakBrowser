@@ -19,7 +19,6 @@ export interface Profile {
   humanize: boolean;
   human_preset: string;
   geoip: boolean;
-  clipboard_sync: boolean;
   auto_launch: boolean;
   color_scheme: string | null;
   launch_args: string[];
@@ -33,17 +32,6 @@ export interface Profile {
   cdp_url: string | null;
   last_run: string | null;
   storage_bytes: number;
-  canvas_noise?: string;
-  client_rect_noise?: string;
-  webgl_noise?: string;
-  audio_noise?: string;
-  webgl_meta_masked?: boolean;
-  media_devices_masked?: boolean;
-  media_audio_inputs?: number;
-  media_audio_outputs?: number;
-  media_video_inputs?: number;
-  device_memory?: number;
-  browser_brand?: string | null;
 }
 
 export interface ProfileCreateData {
@@ -62,23 +50,11 @@ export interface ProfileCreateData {
   humanize?: boolean;
   human_preset?: string;
   geoip?: boolean;
-  clipboard_sync?: boolean;
   auto_launch?: boolean;
   color_scheme?: string | null;
   launch_args?: string[];
   notes?: string | null;
   tags?: { tag: string; color: string | null }[];
-  canvas_noise?: string;
-  client_rect_noise?: string;
-  webgl_noise?: string;
-  audio_noise?: string;
-  webgl_meta_masked?: boolean;
-  media_devices_masked?: boolean;
-  media_audio_inputs?: number;
-  media_audio_outputs?: number;
-  media_video_inputs?: number;
-  device_memory?: number;
-  browser_brand?: string | null;
 }
 
 export interface LaunchResult {
@@ -110,7 +86,6 @@ export interface BulkCreateData {
   screen_height?: number;
   humanize?: boolean;
   geoip?: boolean;
-  clipboard_sync?: boolean;
   auto_launch?: boolean;
   notes?: string | null;
   tags?: { tag: string; color: string | null }[];
@@ -210,14 +185,7 @@ export const api = {
 
   getStatus: () => request<SystemStatus>("/api/status"),
 
-  setClipboard: (id: string, text: string) =>
-    request<{ ok: boolean }>(`/api/profiles/${id}/clipboard`, {
-      method: "POST",
-      body: JSON.stringify({ text }),
-    }),
 
-  getClipboard: (id: string) =>
-    request<{ text: string }>(`/api/profiles/${id}/clipboard`),
 
   cloneProfile: (id: string) =>
     request<Profile>(`/api/profiles/${id}/clone`, {
@@ -406,9 +374,7 @@ export interface ProfileExtension {
 
 export interface AppSettings {
   profile_path?: string;
-  license_key?: string;
   language?: "en" | "cn" | "vi";
-  storage_type?: "local" | "s3";
   theme?: "dark" | "light";
   reopen_tabs?: boolean;
   auto_clear_cache?: boolean;

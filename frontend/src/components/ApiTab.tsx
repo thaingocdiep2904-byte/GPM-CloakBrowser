@@ -18,20 +18,16 @@ export function ApiTab() {
   const code1 = `import requests
 from playwright.sync_api import sync_playwright
 
-# Địa chỉ của CloakBrowser Manager API
 MANAGER_URL = "http://localhost:8080"
-# ID của profile cần kết nối (lấy từ bảng quản lý)
 PROFILE_ID = "YOUR_PROFILE_UUID"
 
 def main():
-    # 1. Khởi chạy profile thông qua API
     print("Đang khởi chạy profile...")
     launch_res = requests.post(f"{MANAGER_URL}/api/profiles/{PROFILE_ID}/launch")
     if launch_res.status_code not in (200, 201):
         print("Lỗi khởi chạy profile:", launch_res.text)
         return
     
-    # 2. Lấy thông tin trạng thái profile (bao gồm CDP Port)
     status_res = requests.get(f"{MANAGER_URL}/api/profiles/{PROFILE_ID}/status")
     status_data = status_res.json()
     
@@ -39,38 +35,22 @@ def main():
         print("Profile chưa khởi chạy thành công.")
         return
         
-    # Lấy devtools websocket port từ cdp_url hoặc cdp_port
-    # Ở phiên bản local, CDP được mở tại 127.0.0.1
-    # Tìm devtools port trong status_data
-    # CDP URL có dạng: "/api/profiles/id/cdp"
-    # Port devtools thực tế sẽ nằm trong khoảng 5100-5199
-    # Bạn cũng có thể dùng thư viện để parse port hoặc lấy trực tiếp
-    # Chúng tôi sẽ lấy trực tiếp qua kết nối CDP cục bộ
-    
-    # Ở đây chúng ta giả sử port devtools được trả về hoặc bạn có thể tìm qua log.
-    # Trong CloakBrowser, CDP port được tự động cấp phát và có thể lấy từ status API
-    cdp_port = status_data.get("cdp_port") or 5100 # Cổng gán cho profile
+    cdp_port = status_data.get("cdp_port") or 5100
     
     print(f"Kết nối tới CDP port: {cdp_port}")
     
-    # 3. Sử dụng Playwright kết nối tới Browser Instance đang chạy
     with sync_playwright() as p:
-        # Kết nối qua CDP (Chrome DevTools Protocol)
         browser = p.chromium.connect_over_cdp(f"http://127.0.0.1:{cdp_port}")
         
-        # Lấy context đầu tiên (mặc định đã được tạo sẵn khi mở profile)
         context = browser.contexts[0]
         page = context.pages[0] if context.pages else context.new_page()
         
-        # 4. Điều khiển trình duyệt như bình thường
         page.goto("https://bot-detector.rebrowser.net/")
         print("Tiêu đề trang:", page.title())
         
-        # Chụp ảnh màn hình làm ví dụ
         page.screenshot(path="rebrowser_test.png")
         print("Đã chụp ảnh màn hình lưu tại rebrowser_test.png")
         
-        # Đóng kết nối Playwright (trình duyệt vẫn tiếp tục chạy)
         browser.close()
 
 if __name__ == "__main__":
@@ -85,10 +65,8 @@ PROFILE_ID = "YOUR_PROFILE_UUID"
 
 async def main():
     async with httpx.AsyncClient() as client:
-        # Khởi chạy profile
         await client.post(f"{MANAGER_URL}/api/profiles/{PROFILE_ID}/launch")
         
-        # Lấy trạng thái
         status_resp = await client.get(f"{MANAGER_URL}/api/profiles/{PROFILE_ID}/status")
         status = status_resp.json()
         
@@ -184,6 +162,7 @@ asyncio.run(main())`;
                       <li>Send a profile launch request via CloakBrowser Manager HTTP endpoint.</li>
                       <li>Get the CDP port (allocated automatically in the <code className="bg-surface-2 px-1 py-0.5 rounded text-gray-300">5100-5199</code> range).</li>
                       <li>Connect your Playwright/Puppeteer automation library via local CDP port.</li>
+                      
                     </>
                   )}
                 </ol>
@@ -222,7 +201,7 @@ asyncio.run(main())`;
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white flex items-center gap-1.5">
-                  <span>Mẫu Python Playwright (Bất đồng bộ - Asynchronous)</span>
+                  <span>{lang === "vi" ? "Mẫu Python Playwright (Bất đồng bộ - Asynchronous)" : "Python Playwright Template (Asynchronous)"}</span>
                 </h2>
                 <button
                   onClick={() => handleCopy(code2, "code2")}

@@ -11,9 +11,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
   const { lang, t, setLang } = useLanguage();
   const [settings, setSettings] = useState<AppSettings>({
     profile_path: "",
-    license_key: "CLOAK-XXXX-XXXX-XXXX",
     language: "vi",
-    storage_type: "local",
     theme: "dark",
     reopen_tabs: false,
     auto_clear_cache: true,
@@ -21,7 +19,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
     no_trash: false,
     default_extensions: "[]",
     shared_extensions: "[]",
-    auto_update_cloakbrowser: false,
+    auto_update_cloakbrowser: true,
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -368,18 +366,6 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
                 {lang === "vi" ? "Tự động cập nhật phiên bản CloakBrowser khi khởi động" : "Auto update CloakBrowser version on startup"}
               </span>
             </label>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2">
-            <span className="text-xs font-semibold text-gray-400 w-36">
-              {lang === "vi" ? "Thông số profile mặc định" : "Default Profile Settings"}
-            </span>
-            <button
-              onClick={() => alert(lang === "vi" ? "Tính năng chỉnh sửa cấu hình vân tay mặc định đang được tối ưu hóa." : "Feature for editing default fingerprint configuration is under optimization.")}
-              className="px-3 py-1 bg-surface-2 hover:bg-surface-3 border border-border text-xs rounded transition-colors"
-            >
-              {lang === "vi" ? "Chỉnh sửa" : "Edit"}
-            </button>
           </div>
         </div>
 
