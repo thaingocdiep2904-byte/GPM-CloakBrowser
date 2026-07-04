@@ -150,6 +150,19 @@ def init_db():
             conn.execute("ALTER TABLE profiles ADD COLUMN device_memory INTEGER DEFAULT 4")
         if "browser_brand" not in cols:
             conn.execute("ALTER TABLE profiles ADD COLUMN browser_brand TEXT")
+        
+        # Thực sự xóa cột vật lý khỏi database SQLite
+        if "mac_address" in cols:
+            try:
+                conn.execute("ALTER TABLE profiles DROP COLUMN mac_address")
+            except Exception as e:
+                logger.warning("Không thể xóa cột mac_address bằng ALTER TABLE DROP COLUMN: %s", e)
+        if "headless" in cols:
+            try:
+                conn.execute("ALTER TABLE profiles DROP COLUMN headless")
+            except Exception as e:
+                logger.warning("Không thể xóa cột headless bằng ALTER TABLE DROP COLUMN: %s", e)
+                
         conn.execute("DELETE FROM settings WHERE key IN ('compression_mode', 'gpm_automate_path', 'license_key', 'storage_type')")
         conn.commit()
 
