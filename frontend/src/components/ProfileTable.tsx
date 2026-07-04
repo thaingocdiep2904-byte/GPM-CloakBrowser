@@ -104,9 +104,9 @@ export function ProfileTable({
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [importCookiesTarget, setImportCookiesTarget] = useState<{ id: string; name: string } | null>(null);
   const [extensionTarget, setExtensionTarget] = useState<{ ids: string[]; name: string } | null>(null);
-  const [importPackageOpen, setImportPackageOpen] = useState(false);
-  const [importingPackage, setImportingPackage] = useState(false);
-  const [selectedPackageFile, setSelectedPackageFile] = useState<File | null>(null);
+  const [importProfileOpen, setImportProfileOpen] = useState(false);
+  const [importingProfile, setImportingProfile] = useState(false);
+  const [selectedProfileFile, setSelectedProfileFile] = useState<File | null>(null);
 
   const selectedProfiles = useMemo(() => {
     return profiles.filter((p) => selectedIds.includes(p.id));
@@ -437,8 +437,8 @@ export function ProfileTable({
     }
   };
 
-  const handleExportPackage = async (id: string, name: string) => {
-    showFeedback(lang === "vi" ? "Đang xuất gói Profile..." : "Exporting profile package...");
+  const handleExportProfile = async (id: string, name: string) => {
+    showFeedback(lang === "vi" ? "Đang xuất Profile..." : "Exporting profile...");
     try {
       const token = localStorage.getItem("auth_token") || "";
       const headers: Record<string, string> = {
@@ -448,7 +448,7 @@ export function ProfileTable({
         headers["Authorization"] = `Bearer ${token}`;
       }
       
-      const res = await fetch(`/api/profiles/${id}/export-package`, { headers });
+      const res = await fetch(`/api/profiles/${id}/export-profile`, { headers });
       if (!res.ok) {
         const errText = await res.text();
         throw new Error(errText || (lang === "vi" ? "Lỗi từ server" : "Server error"));
@@ -466,18 +466,60 @@ export function ProfileTable({
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      showFeedback(lang === "vi" ? "Xuất gói Profile thành công!" : "Profile package exported successfully!");
+      showFeedback(lang === "vi" ? "Xuất Profile thành công!" : "Profile exported successfully!");
     } catch (err: any) {
       console.error(err);
-      alert((lang === "vi" ? "Không thể xuất gói Profile: " : "Cannot export profile package: ") + (err.message || err));
+      alert((lang === "vi" ? "Không thể xuất Profile: " : "Cannot export profile: ") + (err.message || err));
     }
   };
 
-  const handleImportPackageSubmit = async (e: React.FormEvent) => {
+  const handleBulkExportProfiles = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    showFeedback(lang === "vi" ? "Đang xuất các Profile đã chọn..." : "Exporting selected profiles...");
+    try {
+      const token = localStorage.getItem("auth_token") || "";
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Accept": "application/zip",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+      
+      const res = await fetch(`/api/profiles/bulk-export-profiles`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ profile_ids: ids }),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || (lang === "vi" ? "Lỗi từ server" : "Server error"));
+      }
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      
+      const filename = `cloak_profiles_bulk_export_${new Date().toISOString().slice(0, 10)}.zip`;
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showFeedback(lang === "vi" ? "Xuất các Profile thành công!" : "Profiles exported successfully!");
+    } catch (err: any) {
+      console.error(err);
+      alert((lang === "vi" ? "Không thể xuất các Profile: " : "Cannot export profiles: ") + (err.message || err));
+    }
+  };
+
+  const handleImportProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPackageFile) return;
-    setImportingPackage(true);
-    showFeedback(lang === "vi" ? "Đang import gói profile, vui lòng chờ..." : "Importing profile package, please wait...");
+    if (!selectedProfileFile) return;
+    setImportingProfile(true);
+    showFeedback(lang === "vi" ? "Đang import Profile, vui lòng chờ..." : "Importing profile, please wait...");
     try {
       const token = localStorage.getItem("auth_token") || "";
       const headers: Record<string, string> = {};
@@ -486,9 +528,9 @@ export function ProfileTable({
       }
       
       const formData = new FormData();
-      formData.append("file", selectedPackageFile);
+      formData.append("file", selectedProfileFile);
       
-      const res = await fetch(`/api/profiles/import-package`, {
+      const res = await fetch(`/api/profiles/import-profile`, {
         method: "POST",
         headers,
         body: formData,
@@ -499,17 +541,17 @@ export function ProfileTable({
         throw new Error(errText || (lang === "vi" ? "Lỗi import từ server" : "Import error from server"));
       }
       
-      showFeedback(lang === "vi" ? "Import gói Profile thành công!" : "Profile package imported successfully!");
-      setImportPackageOpen(false);
-      setSelectedPackageFile(null);
+      showFeedback(lang === "vi" ? "Import Profile thành công!" : "Profile imported successfully!");
+      setImportProfileOpen(false);
+      setSelectedProfileFile(null);
       if (onRefreshProfiles) {
         await onRefreshProfiles();
       }
     } catch (err: any) {
       console.error(err);
-      alert((lang === "vi" ? "Không thể import gói Profile: " : "Cannot import profile package: ") + (err.message || err));
+      alert((lang === "vi" ? "Không thể import Profile: " : "Cannot import profile: ") + (err.message || err));
     } finally {
-      setImportingPackage(false);
+      setImportingProfile(false);
     }
   };
 
@@ -531,9 +573,9 @@ export function ProfileTable({
             <span>{t("table.btn_bulk_new")}</span>
           </button>
 
-          <button onClick={() => setImportPackageOpen(true)} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors" title={t("table.import_package")}>
+          <button onClick={() => setImportProfileOpen(true)} className="btn-menu bg-surface-3 hover:bg-surface-4 border border-border text-gray-200 py-1.5 px-3 text-xs rounded font-medium flex items-center gap-1.5 transition-colors" title={t("table.import_profile")}>
             <Upload className="h-3.5 w-3.5 text-emerald-500" />
-            <span>{t("table.import_package")}</span>
+            <span>{t("table.import_profile")}</span>
           </button>
 
           {useTrash && onOpenRecycleBin && (
@@ -716,6 +758,16 @@ export function ProfileTable({
             title={t("table.bulk_export_cookies")}
           >
             <span>{t("table.bulk_export_cookies")}</span>
+          </button>
+          
+          <button
+            onClick={() => handleBulkExportProfiles(selectedIds)}
+            disabled={selectedIds.length === 0}
+            className={`btn-bulk-sub ${selectedIds.length === 0 ? "opacity-45 cursor-not-allowed pointer-events-none" : ""}`}
+            title={t("table.bulk_export_profile")}
+          >
+            <Download className="h-3 w-3 text-indigo-400" />
+            <span>{t("table.bulk_export_profile")}</span>
           </button>
 
           <div className="w-px h-4 bg-border/60 mx-0.5"></div>
@@ -1051,13 +1103,13 @@ export function ProfileTable({
                               </button>
                               <button
                                 onMouseDown={() => {
-                                  handleExportPackage(profile.id, profile.name);
+                                  handleExportProfile(profile.id, profile.name);
                                   setActiveMenuId(null);
                                 }}
                                 className="w-full text-left px-3 py-1.5 hover:bg-accent hover:text-white flex items-center gap-2 text-gray-300 transition-colors"
                               >
-                                <Download className="h-3.5 w-3.5 text-indigo-400" />
-                                <span>{t("menu.export_package")}</span>
+                                <Bookmark className="h-3.5 w-3.5" />
+                                <span>{t("menu.export_profile")}</span>
                               </button>
 
                               <div className="border-t border-border/60 my-1"></div>
@@ -1256,20 +1308,20 @@ export function ProfileTable({
         />
       )}
 
-      {/* Modal Import Package */}
-      {importPackageOpen && (
+      {/* Modal Import Profile */}
+      {importProfileOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[60] animate-fade-in backdrop-blur-xs">
           <div className="bg-surface-1 border border-border rounded-lg shadow-2xl w-full max-w-md animate-scale-up">
             {/* Header Modal */}
             <div className="flex items-center justify-between p-4 border-b border-border/60">
               <h3 className="font-bold text-white text-sm uppercase tracking-wide flex items-center gap-2">
                 <Upload className="h-4 w-4 text-emerald-500" />
-                {t("table.import_package")}
+                {t("table.import_profile")}
               </h3>
               <button
                 onClick={() => {
-                  setImportPackageOpen(false);
-                  setSelectedPackageFile(null);
+                  setImportProfileOpen(false);
+                  setSelectedProfileFile(null);
                 }}
                 className="text-gray-400 hover:text-white transition-colors"
               >
@@ -1278,18 +1330,18 @@ export function ProfileTable({
             </div>
 
             {/* Form Body */}
-            <form onSubmit={handleImportPackageSubmit}>
+            <form onSubmit={handleImportProfileSubmit}>
               <div className="p-5 space-y-4">
                 <div className="space-y-1.5">
                   <label className="block text-gray-400 font-medium text-xs">
-                    {lang === "vi" ? "Chọn tệp gói Profile (.zip)" : "Select Profile Package (.zip)"}
+                    {lang === "vi" ? "Chọn tệp ZIP Profile" : "Select Profile ZIP File"}
                   </label>
                   <input
                     type="file"
                     accept=".zip"
                     onChange={(e) => {
                       if (e.target.files && e.target.files.length > 0) {
-                        setSelectedPackageFile(e.target.files[0] || null);
+                        setSelectedProfileFile(e.target.files[0] || null);
                       }
                     }}
                     required
@@ -1297,8 +1349,8 @@ export function ProfileTable({
                   />
                   <p className="text-[10px] text-gray-500 leading-normal">
                     {lang === "vi" 
-                      ? "⚠️ Lưu ý: Tệp tin phải là định dạng ZIP được xuất từ tính năng 'Xuất gói Profile' của hệ thống. Quá trình nhập có thể mất vài giây đến vài phút tùy thuộc vào kích thước dữ liệu trình duyệt." 
-                      : "⚠️ Note: The file must be a ZIP archive exported via 'Export Profile Package' feature. Import process may take from few seconds to minutes depending on browser data size."}
+                      ? "⚠️ Lưu ý: Tệp tin phải là định dạng ZIP được xuất từ tính năng 'Xuất Profile' (đơn lẻ hoặc hàng loạt) của hệ thống. Quá trình nhập có thể mất vài giây đến vài phút tùy thuộc vào kích thước dữ liệu trình duyệt." 
+                      : "⚠️ Note: The file must be a ZIP archive exported via 'Export Profile' feature (single or bulk). Import process may take from few seconds to minutes depending on browser data size."}
                   </p>
                 </div>
               </div>
@@ -1308,20 +1360,20 @@ export function ProfileTable({
                 <button
                   type="button"
                   onClick={() => {
-                    setImportPackageOpen(false);
-                    setSelectedPackageFile(null);
+                    setImportProfileOpen(false);
+                    setSelectedProfileFile(null);
                   }}
-                  disabled={importingPackage}
+                  disabled={importingProfile}
                   className="px-4 py-1.5 rounded bg-surface-3 hover:bg-surface-4 border border-border text-gray-300 font-medium transition-colors text-xs"
                 >
                   {t("form.cancel")}
                 </button>
                 <button
                   type="submit"
-                  disabled={importingPackage || !selectedPackageFile}
+                  disabled={importingProfile || !selectedProfileFile}
                   className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/20"
                 >
-                  {importingPackage ? (lang === "vi" ? "Đang xử lý..." : "Processing...") : t("table.import_package")}
+                  {importingProfile ? (lang === "vi" ? "Đang xử lý..." : "Processing...") : t("table.import_profile")}
                 </button>
               </div>
             </form>

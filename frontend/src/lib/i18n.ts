@@ -27,11 +27,12 @@ export const translations = {
       copy_id: "Copy ID",
       copy_path: "Copy Path",
       open_location: "Open profile location",
-      export_package: "Xuất gói Profile"
+      export_profile: "Xuất Profile"
     },
     // ProfileTable.tsx
     table: {
-      import_package: "Import gói Profile",
+      import_profile: "Import Profile",
+      bulk_export_profile: "Xuất Profile",
       search_placeholder: "Tìm kiếm profile (tên, proxy, ghi chú)...",
       selected_count: "Đã chọn {count} profiles",
       open: "Mở",
@@ -218,11 +219,12 @@ export const translations = {
       copy_id: "Copy ID",
       copy_path: "Copy Path",
       open_location: "Open profile location",
-      export_package: "Export Profile Package"
+      export_profile: "Export Profile"
     },
     // ProfileTable.tsx
     table: {
-      import_package: "Import Profile Package",
+      import_profile: "Import Profile",
+      bulk_export_profile: "Export Profile",
       search_placeholder: "Search profiles (name, proxy, notes)...",
       selected_count: "{count} profiles selected",
       open: "Open",

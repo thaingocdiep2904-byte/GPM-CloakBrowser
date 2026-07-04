@@ -777,8 +777,8 @@ async def export_profile_cookies(profile_id: str):
     )
 
 
-@app.get("/api/profiles/{profile_id}/export-package")
-async def export_profile_package(profile_id: str):
+@app.get("/api/profiles/{profile_id}/export-profile")
+async def export_profile(profile_id: str):
     profile = db.get_profile(profile_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -786,7 +786,7 @@ async def export_profile_package(profile_id: str):
     if profile_id in browser_mgr.running:
         raise HTTPException(
             status_code=400, 
-            detail="Vui lòng đóng trình duyệt trước khi xuất gói profile." if db.get_setting("language", "vi") == "vi" else "Please close the browser before exporting the profile package."
+            detail="Vui lòng đóng trình duyệt trước khi xuất profile." if db.get_setting("language", "vi") == "vi" else "Please close the browser before exporting the profile."
         )
         
     import io
@@ -837,8 +837,73 @@ async def export_profile_package(profile_id: str):
     )
 
 
-@app.post("/api/profiles/import-package")
-async def import_profile_package(file: UploadFile = File(...)):
+@app.post("/api/profiles/bulk-export-profiles")
+async def bulk_export_profiles(req: BulkActionRequest):
+    running_profiles = [pid for pid in req.profile_ids if pid in browser_mgr.running]
+    if running_profiles:
+        raise HTTPException(
+            status_code=400, 
+            detail="Vui lòng đóng các trình duyệt trước khi xuất hàng loạt profile." if db.get_setting("language", "vi") == "vi" else "Please close the browsers before bulk exporting profiles."
+        )
+        
+    import io
+    import os
+    import json
+    import zipfile
+    import datetime
+    from pathlib import Path
+    from fastapi.responses import Response
+    from urllib.parse import quote
+    
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, "a", zipfile.ZIP_DEFLATED, False) as zip_file:
+        for pid in req.profile_ids:
+            profile = db.get_profile(pid)
+            if not profile:
+                continue
+                
+            extensions = db.get_profile_extensions(pid)
+            metadata = {
+                "profile": {k: v for k, v in profile.items() if k != "tags"},
+                "tags": profile.get("tags", []),
+                "extensions": extensions
+            }
+            
+            metadata_content = json.dumps(metadata, indent=2, ensure_ascii=False)
+            zip_file.writestr(f"profiles/{pid}/metadata.json", metadata_content)
+            
+            user_data_path = Path(profile["user_data_dir"])
+            if user_data_path.exists() and user_data_path.is_dir():
+                for root, dirs, files in os.walk(user_data_path):
+                    for file in files:
+                        file_path = Path(root) / file
+                        try:
+                            rel_path = file_path.relative_to(user_data_path)
+                            zip_file.write(
+                                str(file_path), 
+                                arcname=os.path.join("profiles", pid, "browser_data", rel_path)
+                            )
+                        except Exception as e:
+                            logger.warning(f"Error packing file {file_path} for profile {pid}: {e}")
+                            
+    zip_content = zip_buffer.getvalue()
+    zip_buffer.close()
+    
+    filename = f"cloak_profiles_bulk_export_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+    encoded_filename = quote(filename)
+    
+    return Response(
+        content=zip_content,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
+    )
+
+
+@app.post("/api/profiles/import-profile")
+async def import_profile_endpoint(file: UploadFile = File(...)):
     import io
     import os
     import json
@@ -853,119 +918,247 @@ async def import_profile_package(file: UploadFile = File(...)):
     
     try:
         with zipfile.ZipFile(zip_buffer, "r") as zip_file:
-            try:
-                metadata_str = zip_file.read("metadata.json").decode("utf-8")
-                metadata = json.loads(metadata_str)
-            except Exception as e:
-                raise HTTPException(status_code=400, detail=f"Không tìm thấy hoặc không thể đọc file cấu hình metadata.json trong gói ZIP: {e}")
-                
-            profile_data = metadata.get("profile")
-            tags_data = metadata.get("tags", [])
-            extensions_data = metadata.get("extensions", [])
+            namelist = zip_file.namelist()
+            is_bulk = "metadata.json" not in namelist
             
-            if not profile_data:
-                raise HTTPException(status_code=400, detail="Thiếu cấu hình profile (profile metadata) trong gói ZIP.")
-                
-            orig_id = profile_data["id"]
-            new_id = orig_id
-            existing = db.get_profile(orig_id)
-            if existing:
-                new_id = str(uuid.uuid4())
-                profile_data["name"] = f"{profile_data['name']}_Imported"
-                
-            new_user_data_dir = str(db.get_profiles_dir() / new_id)
-            os.makedirs(new_user_data_dir, exist_ok=True)
+            imported_profiles = []
             
-            for name in zip_file.namelist():
-                if name.startswith("browser_data/"):
-                    rel_path = name[len("browser_data/"):]
-                    if not rel_path or rel_path.endswith("/"):
-                        continue
-                    target_path = os.path.join(new_user_data_dir, rel_path)
-                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
-                    with zip_file.open(name) as source, open(target_path, "wb") as target:
-                        shutil.copyfileobj(source, target)
-                        
-            now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            
-            with db.get_db() as conn:
-                conn.execute(
-                    """INSERT OR REPLACE INTO profiles (
-                        id, name, fingerprint_seed, proxy, timezone, locale, platform,
-                        user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
-                        hardware_concurrency, humanize, human_preset, headless, geoip,
-                        clipboard_sync, auto_launch, color_scheme, launch_args, notes,
-                        user_data_dir, created_at, updated_at,
-                        canvas_noise, client_rect_noise, webgl_noise, audio_noise,
-                        webgl_meta_masked, media_devices_masked, media_audio_inputs,
-                        media_audio_outputs, media_video_inputs, device_memory, mac_address,
-                        browser_brand, is_deleted
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (
-                        new_id,
-                        profile_data.get("name", "Imported Profile"),
-                        profile_data.get("fingerprint_seed", 12345),
-                        profile_data.get("proxy"),
-                        profile_data.get("timezone"),
-                        profile_data.get("locale"),
-                        profile_data.get("platform", "windows"),
-                        profile_data.get("user_agent"),
-                        profile_data.get("screen_width", 1920),
-                        profile_data.get("screen_height", 1080),
-                        profile_data.get("gpu_vendor"),
-                        profile_data.get("gpu_renderer"),
-                        profile_data.get("hardware_concurrency"),
-                        1 if profile_data.get("humanize", True) else 0,
-                        profile_data.get("human_preset", "default"),
-                        1 if profile_data.get("headless", False) else 0,
-                        1 if profile_data.get("geoip", True) else 0,
-                        1 if profile_data.get("clipboard_sync", True) else 0,
-                        1 if profile_data.get("auto_launch", False) else 0,
-                        profile_data.get("color_scheme"),
-                        json.dumps(profile_data.get("launch_args", [])),
-                        profile_data.get("notes"),
-                        new_user_data_dir,
-                        profile_data.get("created_at", now_str),
-                        now_str,
-                        profile_data.get("canvas_noise", "off"),
-                        profile_data.get("client_rect_noise", "off"),
-                        profile_data.get("webgl_noise", "off"),
-                        profile_data.get("audio_noise", "on"),
-                        1 if profile_data.get("webgl_meta_masked", True) else 0,
-                        1 if profile_data.get("media_devices_masked", True) else 0,
-                        profile_data.get("media_audio_inputs", 2),
-                        profile_data.get("media_audio_outputs", 1),
-                        profile_data.get("media_video_inputs", 0),
-                        profile_data.get("device_memory", 4),
-                        profile_data.get("mac_address"),
-                        profile_data.get("browser_brand"),
-                        0
-                    )
-                )
+            if not is_bulk:
+                try:
+                    metadata_str = zip_file.read("metadata.json").decode("utf-8")
+                    metadata = json.loads(metadata_str)
+                except Exception as e:
+                    raise HTTPException(status_code=400, detail=f"Không thể đọc file cấu hình metadata.json: {e}")
+                    
+                profile_data = metadata.get("profile")
+                tags_data = metadata.get("tags", [])
+                extensions_data = metadata.get("extensions", [])
                 
-                conn.execute("DELETE FROM profile_tags WHERE profile_id = ?", (new_id,))
-                for t in tags_data:
+                if not profile_data:
+                    raise HTTPException(status_code=400, detail="Thiếu cấu hình profile (profile metadata) trong gói ZIP.")
+                    
+                orig_id = profile_data["id"]
+                new_id = orig_id
+                existing = db.get_profile(orig_id)
+                if existing:
+                    new_id = str(uuid.uuid4())
+                    profile_data["name"] = f"{profile_data['name']}_Imported"
+                    
+                new_user_data_dir = str(db.get_profiles_dir() / new_id)
+                os.makedirs(new_user_data_dir, exist_ok=True)
+                
+                for name in namelist:
+                    if name.startswith("browser_data/"):
+                        rel_path = name[len("browser_data/"):]
+                        if not rel_path or rel_path.endswith("/"):
+                            continue
+                        target_path = os.path.join(new_user_data_dir, rel_path)
+                        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                        with zip_file.open(name) as source, open(target_path, "wb") as target:
+                            shutil.copyfileobj(source, target)
+                            
+                now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                
+                with db.get_db() as conn:
                     conn.execute(
-                        "INSERT INTO profile_tags (profile_id, tag, color) VALUES (?, ?, ?)",
-                        (new_id, t["tag"], t.get("color")),
+                        """INSERT OR REPLACE INTO profiles (
+                            id, name, fingerprint_seed, proxy, timezone, locale, platform,
+                            user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
+                            hardware_concurrency, humanize, human_preset, headless, geoip,
+                            clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                            user_data_dir, created_at, updated_at,
+                            canvas_noise, client_rect_noise, webgl_noise, audio_noise,
+                            webgl_meta_masked, media_devices_masked, media_audio_inputs,
+                            media_audio_outputs, media_video_inputs, device_memory, mac_address,
+                            browser_brand, is_deleted
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            new_id,
+                            profile_data.get("name", "Imported Profile"),
+                            profile_data.get("fingerprint_seed", 12345),
+                            profile_data.get("proxy"),
+                            profile_data.get("timezone"),
+                            profile_data.get("locale"),
+                            profile_data.get("platform", "windows"),
+                            profile_data.get("user_agent"),
+                            profile_data.get("screen_width", 1920),
+                            profile_data.get("screen_height", 1080),
+                            profile_data.get("gpu_vendor"),
+                            profile_data.get("gpu_renderer"),
+                            profile_data.get("hardware_concurrency"),
+                            1 if profile_data.get("humanize", True) else 0,
+                            profile_data.get("human_preset", "default"),
+                            1 if profile_data.get("headless", False) else 0,
+                            1 if profile_data.get("geoip", True) else 0,
+                            1 if profile_data.get("clipboard_sync", True) else 0,
+                            1 if profile_data.get("auto_launch", False) else 0,
+                            profile_data.get("color_scheme"),
+                            json.dumps(profile_data.get("launch_args", [])),
+                            profile_data.get("notes"),
+                            new_user_data_dir,
+                            profile_data.get("created_at", now_str),
+                            now_str,
+                            profile_data.get("canvas_noise", "off"),
+                            profile_data.get("client_rect_noise", "off"),
+                            profile_data.get("webgl_noise", "off"),
+                            profile_data.get("audio_noise", "on"),
+                            1 if profile_data.get("webgl_meta_masked", True) else 0,
+                            1 if profile_data.get("media_devices_masked", True) else 0,
+                            profile_data.get("media_audio_inputs", 2),
+                            profile_data.get("media_audio_outputs", 1),
+                            profile_data.get("media_video_inputs", 0),
+                            profile_data.get("device_memory", 4),
+                            profile_data.get("mac_address"),
+                            profile_data.get("browser_brand"),
+                            0
+                        )
                     )
                     
-                conn.execute("DELETE FROM profile_extensions WHERE profile_id = ?", (new_id,))
-                for ext in extensions_data:
-                    ext_exists = conn.execute("SELECT 1 FROM extensions WHERE id = ?", (ext["id"],)).fetchone()
-                    if ext_exists:
+                    conn.execute("DELETE FROM profile_tags WHERE profile_id = ?", (new_id,))
+                    for t in tags_data:
                         conn.execute(
-                            "INSERT INTO profile_extensions (profile_id, extension_id, is_enabled) VALUES (?, ?, ?)",
-                            (new_id, ext["id"], 1 if ext.get("is_enabled", True) else 0),
+                            "INSERT INTO profile_tags (profile_id, tag, color) VALUES (?, ?, ?)",
+                            (new_id, t["tag"], t.get("color")),
                         )
-                conn.commit()
-                
-            return db.get_profile(new_id)
+                        
+                    conn.execute("DELETE FROM profile_extensions WHERE profile_id = ?", (new_id,))
+                    for ext in extensions_data:
+                        ext_exists = conn.execute("SELECT 1 FROM extensions WHERE id = ?", (ext["id"],)).fetchone()
+                        if ext_exists:
+                            conn.execute(
+                                "INSERT INTO profile_extensions (profile_id, extension_id, is_enabled) VALUES (?, ?, ?)",
+                                (new_id, ext["id"], 1 if ext.get("is_enabled", True) else 0),
+                            )
+                    conn.commit()
+                imported_profiles.append(db.get_profile(new_id))
+            else:
+                profile_ids_in_zip = set()
+                for name in namelist:
+                    if name.startswith("profiles/") and "/" in name[len("profiles/"):]:
+                        pid = name[len("profiles/"):].split("/")[0]
+                        profile_ids_in_zip.add(pid)
+                        
+                for pid in profile_ids_in_zip:
+                    metadata_key = f"profiles/{pid}/metadata.json"
+                    if metadata_key not in namelist:
+                        continue
+                        
+                    try:
+                        metadata_str = zip_file.read(metadata_key).decode("utf-8")
+                        metadata = json.loads(metadata_str)
+                    except Exception as e:
+                        logger.warning(f"Không thể đọc file cấu hình cho profile {pid} trong gói ZIP bulk: {e}")
+                        continue
+                        
+                    profile_data = metadata.get("profile")
+                    tags_data = metadata.get("tags", [])
+                    extensions_data = metadata.get("extensions", [])
+                    
+                    if not profile_data:
+                        continue
+                        
+                    orig_id = profile_data["id"]
+                    new_id = orig_id
+                    existing = db.get_profile(orig_id)
+                    if existing:
+                        new_id = str(uuid.uuid4())
+                        profile_data["name"] = f"{profile_data['name']}_Imported"
+                        
+                    new_user_data_dir = str(db.get_profiles_dir() / new_id)
+                    os.makedirs(new_user_data_dir, exist_ok=True)
+                    
+                    prefix = f"profiles/{pid}/browser_data/"
+                    for name in namelist:
+                        if name.startswith(prefix):
+                            rel_path = name[len(prefix):]
+                            if not rel_path or rel_path.endswith("/"):
+                                continue
+                            target_path = os.path.join(new_user_data_dir, rel_path)
+                            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                            with zip_file.open(name) as source, open(target_path, "wb") as target:
+                                shutil.copyfileobj(source, target)
+                                
+                    now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                    
+                    with db.get_db() as conn:
+                        conn.execute(
+                            """INSERT OR REPLACE INTO profiles (
+                                id, name, fingerprint_seed, proxy, timezone, locale, platform,
+                                user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
+                                hardware_concurrency, humanize, human_preset, headless, geoip,
+                                clipboard_sync, auto_launch, color_scheme, launch_args, notes,
+                                user_data_dir, created_at, updated_at,
+                                canvas_noise, client_rect_noise, webgl_noise, audio_noise,
+                                webgl_meta_masked, media_devices_masked, media_audio_inputs,
+                                media_audio_outputs, media_video_inputs, device_memory, mac_address,
+                                browser_brand, is_deleted
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                new_id,
+                                profile_data.get("name", "Imported Profile"),
+                                profile_data.get("fingerprint_seed", 12345),
+                                profile_data.get("proxy"),
+                                profile_data.get("timezone"),
+                                profile_data.get("locale"),
+                                profile_data.get("platform", "windows"),
+                                profile_data.get("user_agent"),
+                                profile_data.get("screen_width", 1920),
+                                profile_data.get("screen_height", 1080),
+                                profile_data.get("gpu_vendor"),
+                                profile_data.get("gpu_renderer"),
+                                profile_data.get("hardware_concurrency"),
+                                1 if profile_data.get("humanize", True) else 0,
+                                profile_data.get("human_preset", "default"),
+                                1 if profile_data.get("headless", False) else 0,
+                                1 if profile_data.get("geoip", True) else 0,
+                                1 if profile_data.get("clipboard_sync", True) else 0,
+                                1 if profile_data.get("auto_launch", False) else 0,
+                                profile_data.get("color_scheme"),
+                                json.dumps(profile_data.get("launch_args", [])),
+                                profile_data.get("notes"),
+                                new_user_data_dir,
+                                profile_data.get("created_at", now_str),
+                                now_str,
+                                profile_data.get("canvas_noise", "off"),
+                                profile_data.get("client_rect_noise", "off"),
+                                profile_data.get("webgl_noise", "off"),
+                                profile_data.get("audio_noise", "on"),
+                                1 if profile_data.get("webgl_meta_masked", True) else 0,
+                                1 if profile_data.get("media_devices_masked", True) else 0,
+                                profile_data.get("media_audio_inputs", 2),
+                                profile_data.get("media_audio_outputs", 1),
+                                profile_data.get("media_video_inputs", 0),
+                                profile_data.get("device_memory", 4),
+                                profile_data.get("mac_address"),
+                                profile_data.get("browser_brand"),
+                                0
+                            )
+                        )
+                        
+                        conn.execute("DELETE FROM profile_tags WHERE profile_id = ?", (new_id,))
+                        for t in tags_data:
+                            conn.execute(
+                                "INSERT INTO profile_tags (profile_id, tag, color) VALUES (?, ?, ?)",
+                                (new_id, t["tag"], t.get("color")),
+                            )
+                            
+                        conn.execute("DELETE FROM profile_extensions WHERE profile_id = ?", (new_id,))
+                        for ext in extensions_data:
+                            ext_exists = conn.execute("SELECT 1 FROM extensions WHERE id = ?", (ext["id"],)).fetchone()
+                            if ext_exists:
+                                conn.execute(
+                                    "INSERT INTO profile_extensions (profile_id, extension_id, is_enabled) VALUES (?, ?, ?)",
+                                    (new_id, ext["id"], 1 if ext.get("is_enabled", True) else 0),
+                                )
+                        conn.commit()
+                    imported_profiles.append(db.get_profile(new_id))
+                    
+            return imported_profiles
             
     except zipfile.BadZipFile:
         raise HTTPException(status_code=400, detail="File không phải định dạng ZIP hợp lệ.")
     except Exception as e:
-        logger.error(f"Error importing profile package: {e}")
+        logger.error(f"Error importing profile: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
