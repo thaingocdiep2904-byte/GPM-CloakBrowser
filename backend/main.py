@@ -899,8 +899,8 @@ async def import_profile_package(file: UploadFile = File(...)):
                         canvas_noise, client_rect_noise, webgl_noise, audio_noise,
                         webgl_meta_masked, media_devices_masked, media_audio_inputs,
                         media_audio_outputs, media_video_inputs, device_memory, mac_address,
-                        browser_brand, is_shared, is_deleted
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        browser_brand, is_deleted
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         new_id,
                         profile_data.get("name", "Imported Profile"),
@@ -939,7 +939,6 @@ async def import_profile_package(file: UploadFile = File(...)):
                         profile_data.get("device_memory", 4),
                         profile_data.get("mac_address"),
                         profile_data.get("browser_brand"),
-                        1 if profile_data.get("is_shared", False) else 0,
                         0
                     )
                 )
