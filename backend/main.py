@@ -1751,7 +1751,6 @@ async def get_settings():
         
     return AppSettings(
         profile_path=profile_path,
-        compression_mode=raw_settings.get("compression_mode", "default"),
         license_key=raw_settings.get("license_key"),
         language=raw_settings.get("language", "en"),
         storage_type=raw_settings.get("storage_type", "local"),

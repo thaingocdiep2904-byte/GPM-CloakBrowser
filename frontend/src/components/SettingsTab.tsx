@@ -11,7 +11,6 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
   const { lang, t, setLang } = useLanguage();
   const [settings, setSettings] = useState<AppSettings>({
     profile_path: "",
-    compression_mode: "default",
     license_key: "CLOAK-XXXX-XXXX-XXXX",
     language: "vi",
     storage_type: "local",
@@ -258,41 +257,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
             </span>
           </div>
 
-          <div className="flex items-start gap-3">
-            <span className="text-xs font-semibold text-gray-400 w-24 mt-1">
-              {lang === "vi" ? "Chế độ nén" : "Compression Mode"}
-            </span>
-            <div className="space-y-2">
-              <div className="flex items-center gap-6 text-xs">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="compression_mode"
-                    checked={settings.compression_mode === "default"}
-                    onChange={() => setSettings((prev) => ({ ...prev, compression_mode: "default" }))}
-                    className="accent-primary"
-                  />
-                  <span>{lang === "vi" ? "Mặc định" : "Default"}</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="compression_mode"
-                    checked={settings.compression_mode === "7z"}
-                    onChange={() => setSettings((prev) => ({ ...prev, compression_mode: "7z" }))}
-                    className="accent-primary"
-                  />
-                  <span>7Z</span>
-                </label>
-              </div>
-              <p className="text-[11px] text-gray-500 max-w-xl leading-relaxed">
-                {lang === "vi"
-                  ? "Trình nén được sử dụng khi Import / Export / Backup / Restore và nén profile khi đẩy lên cloud nếu sử dụng. 7Z được đề xuất là nhanh và ổn định hơn trình nén mặc định của Windows"
-                  : "Compression mode used for Import / Export / Backup / Restore and cloud backup. 7Z is recommended for faster and more stable compression than the default Windows zip compression"
-                }
-              </p>
-            </div>
-          </div>
+
         </div>
 
         {/* Section 2: General settings */}

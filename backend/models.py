@@ -243,7 +243,6 @@ class BulkImportRequest(BaseModel):
 
 class AppSettings(BaseModel):
     profile_path: str | None = None
-    compression_mode: Literal["default", "7z"] | None = "default"
     license_key: str | None = "CLOAK-XXXX-XXXX-XXXX"
     language: Literal["en", "vi"] | None = "vi"
     storage_type: Literal["local", "s3"] | None = "local"

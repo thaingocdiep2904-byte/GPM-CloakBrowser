@@ -411,7 +411,6 @@ export interface ProfileExtension {
 
 export interface AppSettings {
   profile_path?: string;
-  compression_mode?: "default" | "7z";
   license_key?: string;
   language?: "en" | "cn" | "vi";
   storage_type?: "local" | "s3";
