@@ -328,7 +328,7 @@ class BrowserManager:
             # Launch CloakBrowser directly on the desktop
             context = await launch_persistent_context_async(
                 user_data_dir=profile["user_data_dir"],
-                headless=bool(profile.get("headless", False)),
+                headless=False,
                 proxy=proxy,
                 args=extra_args,
                 timezone=profile.get("timezone") or None,

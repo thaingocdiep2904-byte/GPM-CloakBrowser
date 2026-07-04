@@ -22,7 +22,6 @@ class ProfileCreate(BaseModel):
     hardware_concurrency: int | None = None
     humanize: bool = True
     human_preset: Literal["default", "careful"] = "default"
-    headless: bool = False
     geoip: bool = True
     clipboard_sync: bool = True
     auto_launch: bool = False
@@ -40,7 +39,6 @@ class ProfileCreate(BaseModel):
     media_audio_outputs: int | None = 1
     media_video_inputs: int | None = 0
     device_memory: int | None = 4
-    mac_address: str | None = None
     browser_brand: str | None = None
 
 
@@ -59,7 +57,6 @@ class ProfileUpdate(BaseModel):
     hardware_concurrency: int | None = Field(default=None)
     humanize: bool | None = None
     human_preset: Literal["default", "careful"] | None = None
-    headless: bool | None = None
     geoip: bool | None = None
     clipboard_sync: bool | None = None
     auto_launch: bool | None = None
@@ -77,7 +74,6 @@ class ProfileUpdate(BaseModel):
     media_audio_outputs: int | None = None
     media_video_inputs: int | None = None
     device_memory: int | None = None
-    mac_address: str | None = None
     browser_brand: str | None = Field(default=None)
 
 
@@ -107,7 +103,6 @@ class ProfileResponse(BaseModel):
     hardware_concurrency: int | None = None
     humanize: bool = True
     human_preset: str = "default"
-    headless: bool = False
     geoip: bool = True
     clipboard_sync: bool = True
     auto_launch: bool = False
@@ -121,7 +116,6 @@ class ProfileResponse(BaseModel):
     media_audio_outputs: int | None = 1
     media_video_inputs: int | None = 0
     device_memory: int | None = 4
-    mac_address: str | None = None
     browser_brand: str | None = None
 
     @field_validator("clipboard_sync", mode="before")
@@ -182,7 +176,6 @@ class BulkCreateRequest(BaseModel):
     screen_width: int = 1920
     screen_height: int = 1080
     humanize: bool = True
-    headless: bool = False
     geoip: bool = True
     clipboard_sync: bool = True
     auto_launch: bool = False

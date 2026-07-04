@@ -27,7 +27,6 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
   const [height, setHeight] = useState(1080);
   const [currentResolution, setCurrentResolution] = useState("1920 × 1080 (Full HD)");
   const [humanize, setHumanize] = useState(true);
-  const [headless, setHeadless] = useState(false);
   const [geoip, setGeoip] = useState(true);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -60,7 +59,6 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
       screen_width: width,
       screen_height: height,
       humanize,
-      headless,
       geoip,
       notes: notes.trim() || null,
     };
@@ -242,20 +240,7 @@ export function BulkCreateDialog({ onSave, onCancel }: BulkCreateDialogProps) {
               </div>
             </label>
 
-            <label className="flex items-start gap-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={headless}
-                onChange={(e) => setHeadless(e.target.checked)}
-                className="rounded border-gray-600 bg-surface-3 text-accent focus:ring-accent mt-0.5"
-              />
-              <div>
-                <span className="font-medium text-white block">Headless</span>
-                <span className="text-[10px] text-gray-500">
-                  {lang === "vi" ? "Chạy ngầm ẩn trình duyệt." : "Run browser hidden in background."}
-                </span>
-              </div>
-            </label>
+
 
             <label className="flex items-start gap-2.5 cursor-pointer">
               <input

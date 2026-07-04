@@ -83,16 +83,7 @@ const GPU_PRESETS: Record<string, { vendor: string; renderer: string }> = {
   },
 };
 
-const generateRandomMac = () => {
-  const hex = "0123456789ABCDEF";
-  let mac = "";
-  for (let i = 0; i < 6; i++) {
-    mac += hex[Math.floor(Math.random() * 16)];
-    mac += hex[Math.floor(Math.random() * 16)];
-    if (i < 5) mac += "-";
-  }
-  return mac;
-};
+
 
 export function ProfileForm({ profile, onSave }: ProfileFormProps) {
   const { lang, t } = useLanguage();
@@ -107,7 +98,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
     screen_height: 1080,
     humanize: true,
     human_preset: "default",
-    headless: false,
     geoip: true,
     auto_launch: false,
     launch_args: [],
@@ -122,7 +112,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
     media_audio_outputs: 1,
     media_video_inputs: 0,
     device_memory: 4,
-    mac_address: "",
     browser_brand: "",
   });
 
@@ -154,7 +143,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
         hardware_concurrency: profile.hardware_concurrency,
         humanize: profile.humanize,
         human_preset: profile.human_preset as any,
-        headless: profile.headless,
         geoip: profile.geoip,
         auto_launch: profile.auto_launch,
         color_scheme: profile.color_scheme as any,
@@ -171,7 +159,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
         media_audio_outputs: profile.media_audio_outputs ?? 1,
         media_video_inputs: profile.media_video_inputs ?? 0,
         device_memory: profile.device_memory ?? 4,
-        mac_address: profile.mac_address ?? generateRandomMac(),
         browser_brand: profile.browser_brand ?? "",
       });
     } else {
@@ -192,7 +179,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
         screen_height: 1080,
         humanize: true,
         human_preset: "default",
-        headless: false,
         geoip: true,
         auto_launch: false,
         launch_args: [],
@@ -211,7 +197,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
         device_memory: newRam,
         gpu_vendor: preset?.vendor || "Google Inc. (NVIDIA)",
         gpu_renderer: preset?.renderer || "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 (0x00002484) Direct3D11 vs_5_0 ps_5_0, D3D11)",
-        mac_address: generateRandomMac(),
         browser_brand: "",
       });
     }
@@ -253,14 +238,10 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
 
   const handleRandomizeAll = () => {
     const newSeed = Math.floor(Math.random() * 90000) + 10000;
-
     const cpuOptions = [4, 6, 8, 12, 16, 20];
     const newCpu = cpuOptions[Math.floor(Math.random() * cpuOptions.length)];
-
     const ramOptions = [4, 8, 12, 16, 32];
     const newRam = ramOptions[Math.floor(Math.random() * ramOptions.length)];
-
-    const newMac = generateRandomMac();
 
     const gpuKeys = Object.keys(GPU_PRESETS);
     const randomGpuKey = gpuKeys[Math.floor(Math.random() * gpuKeys.length)] as string;
@@ -271,7 +252,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
       fingerprint_seed: newSeed,
       hardware_concurrency: newCpu,
       device_memory: newRam,
-      mac_address: newMac,
       gpu_vendor: preset?.vendor || prev.gpu_vendor || "Google Inc. (NVIDIA)",
       gpu_renderer: preset?.renderer || prev.gpu_renderer || "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 (0x00002484) Direct3D11 vs_5_0 ps_5_0, D3D11)",
       canvas_noise: Math.random() > 0.5 ? "on" : "off",
@@ -923,26 +903,6 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
                     <option value="32">32 GB</option>
                   </select>
                 </div>
-
-                <div>
-                  <label className="block text-gray-400 mb-1 font-medium">MAC Address</label>
-                  <div className="flex gap-1.5">
-                    <input
-                      className="input flex-1 bg-surface-2 border border-border rounded px-2.5 py-1.5 text-white text-xs font-mono"
-                      value={form.mac_address ?? ""}
-                      onChange={(e) => set("mac_address", e.target.value)}
-                      placeholder="BE-A3-D2-69-4C-49"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => set("mac_address", generateRandomMac())}
-                      className="px-2 rounded bg-surface-3 hover:bg-surface-4 text-gray-300 transition-colors border border-border"
-                      title={lang === "vi" ? "Tạo MAC ngẫu nhiên" : "Randomize MAC address"}
-                    >
-                      <RefreshCw className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
               </div>
 
               {/* Button Tạo thông số mới */}
@@ -1056,9 +1016,11 @@ export function ProfileForm({ profile, onSave }: ProfileFormProps) {
                 </span>
               </div>
               <div>
-                <span className="text-[10px] text-gray-500 font-medium block">MAC Address</span>
-                <span className="text-white font-mono break-all">
-                  {form.mac_address || (lang === "vi" ? "Tự động" : "Auto")}
+                <span className="text-[10px] text-gray-500 font-medium block">
+                  {lang === "vi" ? "Dung lượng RAM" : "RAM Memory"}
+                </span>
+                <span className="text-white font-mono">
+                  {form.device_memory ? `${form.device_memory} GB` : (lang === "vi" ? "Tự động" : "Auto")}
                 </span>
               </div>
             </div>

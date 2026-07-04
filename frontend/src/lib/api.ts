@@ -18,7 +18,6 @@ export interface Profile {
   hardware_concurrency: number | null;
   humanize: boolean;
   human_preset: string;
-  headless: boolean;
   geoip: boolean;
   clipboard_sync: boolean;
   auto_launch: boolean;
@@ -44,7 +43,6 @@ export interface Profile {
   media_audio_outputs?: number;
   media_video_inputs?: number;
   device_memory?: number;
-  mac_address?: string;
   browser_brand?: string | null;
 }
 
@@ -63,7 +61,6 @@ export interface ProfileCreateData {
   hardware_concurrency?: number | null;
   humanize?: boolean;
   human_preset?: string;
-  headless?: boolean;
   geoip?: boolean;
   clipboard_sync?: boolean;
   auto_launch?: boolean;
@@ -81,7 +78,6 @@ export interface ProfileCreateData {
   media_audio_outputs?: number;
   media_video_inputs?: number;
   device_memory?: number;
-  mac_address?: string;
   browser_brand?: string | null;
 }
 
@@ -113,7 +109,6 @@ export interface BulkCreateData {
   screen_width?: number;
   screen_height?: number;
   humanize?: boolean;
-  headless?: boolean;
   geoip?: boolean;
   clipboard_sync?: boolean;
   auto_launch?: boolean;

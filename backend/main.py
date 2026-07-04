@@ -964,14 +964,14 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                         """INSERT OR REPLACE INTO profiles (
                             id, name, fingerprint_seed, proxy, timezone, locale, platform,
                             user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
-                            hardware_concurrency, humanize, human_preset, headless, geoip,
+                            hardware_concurrency, humanize, human_preset, geoip,
                             clipboard_sync, auto_launch, color_scheme, launch_args, notes,
                             user_data_dir, created_at, updated_at,
                             canvas_noise, client_rect_noise, webgl_noise, audio_noise,
                             webgl_meta_masked, media_devices_masked, media_audio_inputs,
-                            media_audio_outputs, media_video_inputs, device_memory, mac_address,
+                            media_audio_outputs, media_video_inputs, device_memory,
                             browser_brand, is_deleted
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                         (
                             new_id,
                             profile_data.get("name", "Imported Profile"),
@@ -988,7 +988,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                             profile_data.get("hardware_concurrency"),
                             1 if profile_data.get("humanize", True) else 0,
                             profile_data.get("human_preset", "default"),
-                            1 if profile_data.get("headless", False) else 0,
                             1 if profile_data.get("geoip", True) else 0,
                             1 if profile_data.get("clipboard_sync", True) else 0,
                             1 if profile_data.get("auto_launch", False) else 0,
@@ -1008,7 +1007,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                             profile_data.get("media_audio_outputs", 1),
                             profile_data.get("media_video_inputs", 0),
                             profile_data.get("device_memory", 4),
-                            profile_data.get("mac_address"),
                             profile_data.get("browser_brand"),
                             0
                         )
@@ -1085,14 +1083,14 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                             """INSERT OR REPLACE INTO profiles (
                                 id, name, fingerprint_seed, proxy, timezone, locale, platform,
                                 user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
-                                hardware_concurrency, humanize, human_preset, headless, geoip,
+                                hardware_concurrency, humanize, human_preset, geoip,
                                 clipboard_sync, auto_launch, color_scheme, launch_args, notes,
                                 user_data_dir, created_at, updated_at,
                                 canvas_noise, client_rect_noise, webgl_noise, audio_noise,
                                 webgl_meta_masked, media_devices_masked, media_audio_inputs,
-                                media_audio_outputs, media_video_inputs, device_memory, mac_address,
+                                media_audio_outputs, media_video_inputs, device_memory,
                                 browser_brand, is_deleted
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                             (
                                 new_id,
                                 profile_data.get("name", "Imported Profile"),
@@ -1109,7 +1107,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                                 profile_data.get("hardware_concurrency"),
                                 1 if profile_data.get("humanize", True) else 0,
                                 profile_data.get("human_preset", "default"),
-                                1 if profile_data.get("headless", False) else 0,
                                 1 if profile_data.get("geoip", True) else 0,
                                 1 if profile_data.get("clipboard_sync", True) else 0,
                                 1 if profile_data.get("auto_launch", False) else 0,
@@ -1129,7 +1126,6 @@ async def import_profile_endpoint(file: UploadFile = File(...)):
                                 profile_data.get("media_audio_outputs", 1),
                                 profile_data.get("media_video_inputs", 0),
                                 profile_data.get("device_memory", 4),
-                                profile_data.get("mac_address"),
                                 profile_data.get("browser_brand"),
                                 0
                             )

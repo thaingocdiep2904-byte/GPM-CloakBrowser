@@ -57,7 +57,6 @@ def init_db():
                 hardware_concurrency INTEGER,
                 humanize BOOLEAN DEFAULT 1,
                 human_preset TEXT DEFAULT 'default',
-                headless BOOLEAN DEFAULT 0,
                 geoip BOOLEAN DEFAULT 1,
                 clipboard_sync BOOLEAN DEFAULT 1,
                 auto_launch BOOLEAN DEFAULT 0,
@@ -76,7 +75,6 @@ def init_db():
                 media_audio_outputs INTEGER DEFAULT 1,
                 media_video_inputs INTEGER DEFAULT 0,
                 device_memory INTEGER DEFAULT 4,
-                mac_address TEXT,
                 browser_brand TEXT,
                 is_deleted BOOLEAN DEFAULT 0
             );
@@ -150,10 +148,9 @@ def init_db():
             conn.execute("ALTER TABLE profiles ADD COLUMN media_video_inputs INTEGER DEFAULT 0")
         if "device_memory" not in cols:
             conn.execute("ALTER TABLE profiles ADD COLUMN device_memory INTEGER DEFAULT 4")
-        if "mac_address" not in cols:
-            conn.execute("ALTER TABLE profiles ADD COLUMN mac_address TEXT")
         if "browser_brand" not in cols:
             conn.execute("ALTER TABLE profiles ADD COLUMN browser_brand TEXT")
+        conn.execute("DELETE FROM settings WHERE key IN ('compression_mode', 'gpm_automate_path', 'license_key', 'storage_type')")
         conn.commit()
 
 
@@ -177,14 +174,14 @@ def create_profile(
             """INSERT INTO profiles (
                 id, name, fingerprint_seed, proxy, timezone, locale, platform,
                 user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
-                hardware_concurrency, humanize, human_preset, headless, geoip,
+                hardware_concurrency, humanize, human_preset, geoip,
                 clipboard_sync, auto_launch, color_scheme, launch_args, notes,
                 user_data_dir, created_at, updated_at,
                 canvas_noise, client_rect_noise, webgl_noise, audio_noise,
                 webgl_meta_masked, media_devices_masked, media_audio_inputs,
-                media_audio_outputs, media_video_inputs, device_memory, mac_address,
+                media_audio_outputs, media_video_inputs, device_memory,
                 browser_brand
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 profile_id, name, seed,
                 fields.get("proxy"),
@@ -199,7 +196,6 @@ def create_profile(
                 fields.get("hardware_concurrency"),
                 fields.get("humanize", True),
                 fields.get("human_preset", "default"),
-                fields.get("headless", False),
                 fields.get("geoip", True),
                 fields.get("clipboard_sync", True),
                 fields.get("auto_launch", False),
@@ -217,7 +213,6 @@ def create_profile(
                 fields.get("media_audio_outputs", 1),
                 fields.get("media_video_inputs", 0),
                 fields.get("device_memory", 4),
-                fields.get("mac_address"),
                 fields.get("browser_brand"),
             ),
         )
@@ -323,11 +318,11 @@ def update_profile(profile_id: str, **fields: Any) -> dict[str, Any] | None:
         for col in (
             "name", "fingerprint_seed", "proxy", "timezone", "locale", "platform",
             "user_agent", "screen_width", "screen_height", "gpu_vendor", "gpu_renderer",
-            "hardware_concurrency", "humanize", "human_preset", "headless", "geoip",
+            "hardware_concurrency", "humanize", "human_preset", "geoip",
             "clipboard_sync", "auto_launch", "color_scheme", "launch_args", "notes", "last_run",
             "canvas_noise", "client_rect_noise", "webgl_noise", "audio_noise",
             "webgl_meta_masked", "media_devices_masked", "media_audio_inputs",
-            "media_audio_outputs", "media_video_inputs", "device_memory", "mac_address",
+            "media_audio_outputs", "media_video_inputs", "device_memory",
             "browser_brand",
         ):
             if col in fields:
@@ -394,10 +389,10 @@ def bulk_create_profiles(
                 """INSERT INTO profiles (
                     id, name, fingerprint_seed, proxy, timezone, locale, platform,
                     user_agent, screen_width, screen_height, gpu_vendor, gpu_renderer,
-                    hardware_concurrency, humanize, human_preset, headless, geoip,
+                    hardware_concurrency, humanize, human_preset, geoip,
                     clipboard_sync, auto_launch, color_scheme, launch_args, notes,
                     user_data_dir, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     profile_id, name, seed,
                     proxy,
@@ -412,7 +407,6 @@ def bulk_create_profiles(
                     fields.get("hardware_concurrency"),
                     fields.get("humanize", True),
                     fields.get("human_preset", "default"),
-                    fields.get("headless", False),
                     fields.get("geoip", True),
                     fields.get("clipboard_sync", True),
                     fields.get("auto_launch", False),
@@ -444,7 +438,6 @@ def bulk_create_profiles(
                 "hardware_concurrency": fields.get("hardware_concurrency"),
                 "humanize": fields.get("humanize", True),
                 "human_preset": fields.get("human_preset", "default"),
-                "headless": fields.get("headless", False),
                 "geoip": fields.get("geoip", True),
                 "clipboard_sync": fields.get("clipboard_sync", True),
                 "auto_launch": fields.get("auto_launch", False),
