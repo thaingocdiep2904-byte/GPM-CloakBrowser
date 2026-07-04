@@ -315,10 +315,10 @@ export const api = {
       body: JSON.stringify(settings),
     }),
 
-  listFolders: (path?: string) =>
-    request<{ current_path: string; parent_path: string | null; subfolders: string[] }>(
-      "/api/settings/list-folders" + (path ? `?path=${encodeURIComponent(path)}` : "")
-    ),
+  selectFolder: () =>
+    request<{ path: string | null }>("/api/settings/select-folder", {
+      method: "POST",
+    }),
 
   // Extension APIs
   getExtensions: () =>

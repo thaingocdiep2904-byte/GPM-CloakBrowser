@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RotateCw, Save, AlertTriangle, Puzzle, Trash2, Upload, Loader2, Folder, ArrowLeft, ChevronRight, X } from "lucide-react";
+import { RotateCw, Save, AlertTriangle, Puzzle, Trash2, Upload, Loader2 } from "lucide-react";
 import { api, type AppSettings, type Extension } from "../lib/api";
 import { useLanguage } from "../lib/i18n";
 
@@ -148,53 +148,15 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
       .finally(() => setLoading(false));
   }, []);
 
-  const [folderBrowserOpen, setFolderBrowserOpen] = useState(false);
-  const [browserData, setBrowserData] = useState<{
-    current_path: string;
-    parent_path: string | null;
-    subfolders: string[];
-  }>({ current_path: "root", parent_path: null, subfolders: [] });
-  const [browserLoading, setBrowserLoading] = useState(false);
-
-  const loadFolderList = async (path: string) => {
-    setBrowserLoading(true);
+  const handleSelectFolder = async (field: "profile_path") => {
     try {
-      const data = await api.listFolders(path);
-      setBrowserData(data);
+      const res = await api.selectFolder();
+      if (res.path) {
+        setSettings((prev) => ({ ...prev, [field]: res.path as string }));
+      }
     } catch (err) {
-      alert((lang === "vi" ? "Không thể đọc thư mục: " : "Cannot read folder: ") + (err instanceof Error ? err.message : String(err)));
-    } finally {
-      setBrowserLoading(false);
+      alert((lang === "vi" ? "Không thể chọn thư mục: " : "Cannot select folder: ") + (err instanceof Error ? err.message : String(err)));
     }
-  };
-
-  const openFolderBrowser = () => {
-    setFolderBrowserOpen(true);
-    loadFolderList(settings.profile_path || "root");
-  };
-
-  const handleFolderClick = (folder: string) => {
-    let newPath = "";
-    if (browserData.current_path === "root") {
-      newPath = folder;
-    } else {
-      const sep = browserData.current_path.indexOf("/") !== -1 ? "/" : "\\";
-      newPath = browserData.current_path + (browserData.current_path.endsWith(sep) ? "" : sep) + folder;
-    }
-    loadFolderList(newPath);
-  };
-
-  const handleParentClick = () => {
-    if (browserData.parent_path) {
-      loadFolderList(browserData.parent_path);
-    }
-  };
-
-  const handleConfirmSelectFolder = () => {
-    if (browserData.current_path !== "root") {
-      setSettings((prev) => ({ ...prev, profile_path: browserData.current_path }));
-    }
-    setFolderBrowserOpen(false);
   };
 
   const handleSave = async () => {
@@ -281,7 +243,7 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
               {lang === "vi" ? "Trên PC" : "On PC"}
             </span>
             <button
-              onClick={openFolderBrowser}
+              onClick={() => handleSelectFolder("profile_path")}
               className="px-3 py-1.5 bg-surface-2 hover:bg-surface-3 border border-border text-xs rounded transition-colors"
             >
               {lang === "vi" ? "Thay đổi" : "Change"}
@@ -541,92 +503,6 @@ export function SettingsTab({ showFeedback }: SettingsTabProps) {
         </div>
 
       </div>
-
-      {/* Modal Duyệt Thư mục Trực tuyến (Folder Browser Modal) */}
-      {folderBrowserOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[9999] animate-fade-in backdrop-blur-xs">
-          <div className="bg-surface-1 border border-border rounded-xl shadow-2xl w-full max-w-xl flex flex-col max-h-[85vh] animate-scale-up overflow-hidden select-none">
-            {/* Header Modal */}
-            <div className="flex items-center justify-between p-4 border-b border-border/60">
-              <h3 className="font-bold text-white text-sm uppercase tracking-wide flex items-center gap-2">
-                <Folder className="h-4 w-4 text-amber-500" />
-                {lang === "vi" ? "Duyệt thư mục trên PC" : "Browse Folders on PC"}
-              </h3>
-              <button
-                onClick={() => setFolderBrowserOpen(false)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Path Navigation Bar */}
-            <div className="p-3 bg-surface-2/40 border-b border-border/60 flex items-center gap-2 text-xs">
-              <button
-                type="button"
-                onClick={handleParentClick}
-                disabled={!browserData.parent_path}
-                className="p-1 rounded bg-surface-3 hover:bg-surface-4 border border-border text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title={lang === "vi" ? "Quay lại thư mục cha" : "Up one level"}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-              <div className="flex-1 bg-surface-2 border border-border rounded px-2.5 py-1.5 font-mono text-gray-300 overflow-x-auto whitespace-nowrap text-[11px]">
-                {browserData.current_path === "root" ? (lang === "vi" ? "Danh sách ổ đĩa" : "Drives List") : browserData.current_path}
-              </div>
-            </div>
-
-            {/* Folders List Container */}
-            <div className="flex-1 overflow-y-auto p-3 min-h-[300px] max-h-[450px]">
-              {browserLoading ? (
-                <div className="h-full min-h-[300px] flex items-center justify-center text-gray-400 text-xs gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                  <span>{lang === "vi" ? "Đang quét danh sách thư mục..." : "Scanning directories..."}</span>
-                </div>
-              ) : browserData.subfolders.length === 0 ? (
-                <div className="h-full min-h-[300px] flex items-center justify-center text-gray-500 text-xs">
-                  {lang === "vi" ? "Thư mục này trống hoặc không có quyền truy cập." : "This folder is empty or access is denied."}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                  {browserData.subfolders.map((folder) => (
-                    <div
-                      key={folder}
-                      onClick={() => handleFolderClick(folder)}
-                      className="flex items-center justify-between p-2 rounded bg-surface-2 hover:bg-surface-3 border border-border/40 hover:border-accent/40 cursor-pointer transition-all active:scale-[0.98]"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Folder className="h-4 w-4 text-amber-500/80 flex-shrink-0" />
-                        <span className="text-gray-200 text-xs font-mono truncate">{folder}</span>
-                      </div>
-                      <ChevronRight className="h-3 w-3 text-gray-500 flex-shrink-0" />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer Modal */}
-            <div className="flex items-center justify-between gap-2 p-3 bg-surface-2/40 border-t border-border/60 rounded-b-xl">
-              <button
-                type="button"
-                onClick={() => setFolderBrowserOpen(false)}
-                className="px-4 py-1.5 rounded bg-surface-3 hover:bg-surface-4 border border-border text-gray-300 font-medium transition-colors text-xs"
-              >
-                {t("form.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmSelectFolder}
-                disabled={browserData.current_path === "root"}
-                className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors text-xs flex items-center gap-1.5 shadow-md shadow-emerald-950/20"
-              >
-                {lang === "vi" ? "Chọn thư mục này" : "Select this folder"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

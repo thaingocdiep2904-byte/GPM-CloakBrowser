@@ -1776,64 +1776,34 @@ async def update_settings(settings: AppSettings):
             db.set_setting(key, str(val))
     return await get_settings()
 
-@app.get("/api/settings/list-folders")
-async def list_folders(path: str = None):
-    import os
-    import string
+@app.post("/api/settings/select-folder")
+async def select_folder():
     import sys
-    from pathlib import Path
-    
-    is_windows = sys.platform == "win32"
-    
-    if not path or path.strip() == "" or path.strip() == "root":
-        if is_windows:
-            drives = []
-            for letter in string.ascii_uppercase:
-                drive = f"{letter}:\\"
-                if os.path.exists(drive):
-                    drives.append(drive)
-            return {
-                "current_path": "root",
-                "parent_path": None,
-                "subfolders": drives
-            }
-        else:
-            path = "/"
-            
-    try:
-        target_path = Path(path).resolve()
-        if not target_path.exists() or not target_path.is_dir():
-            raise HTTPException(status_code=400, detail="Đường dẫn không tồn tại hoặc không phải thư mục.")
-            
-        subfolders = []
-        try:
-            for item in target_path.iterdir():
-                if item.is_dir():
-                    if not item.name.startswith(".") and not item.name.startswith("$"):
-                        subfolders.append(item.name)
-        except PermissionError:
-            raise HTTPException(status_code=403, detail="Không có quyền truy cập thư mục này.")
-            
-        subfolders.sort(key=str.lower)
+    if sys.platform != "win32":
+        raise HTTPException(status_code=400, detail="Hộp thoại chọn thư mục chỉ hỗ trợ trên hệ điều hành Windows.")
         
-        parent_path = str(target_path.parent)
-        if is_windows:
-            if target_path.drive and (str(target_path) == target_path.drive or str(target_path) == target_path.drive + "\\"):
-                parent_path = "root"
-        else:
-            if str(target_path) == "/":
-                parent_path = None
-                
-        return {
-            "current_path": str(target_path),
-            "parent_path": parent_path,
-            "subfolders": subfolders
-        }
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        
+        path = filedialog.askdirectory(
+            parent=root, 
+            title="Chọn thư mục lưu trữ profile"
+        )
+        
+        root.destroy()
+        
+        if not path:
+            return {"path": None}
+        path = path.replace("/", "\\")
+        return {"path": path}
     except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        logger.error("Lỗi khi duyệt thư mục: %s", e)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Lỗi khi mở Folder Browser Dialog qua Tkinter: %s", e)
+        raise HTTPException(status_code=500, detail=f"Không thể mở hộp thoại chọn thư mục: {e}")
 
 
 # ── Extension Endpoints ───────────────────────────────────────────────────────
