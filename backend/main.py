@@ -1790,7 +1790,15 @@ async def select_folder():
         "$dialog.Description = 'Chọn thư mục lưu trữ profile';"
         "$win = New-Object System.Windows.Forms.Form;"
         "$win.TopMost = $true;"
-        "if ($dialog.ShowDialog($win) -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.SelectedPath }"
+        "$win.Width = 1;"
+        "$win.Height = 1;"
+        "$win.WindowState = [System.Windows.Forms.FormWindowState]::Minimized;"
+        "$win.Show();"
+        "$win.WindowState = [System.Windows.Forms.FormWindowState]::Normal;"
+        "$win.BringToFront();"
+        "$win.Activate();"
+        "if ($dialog.ShowDialog($win) -eq [System.Windows.Forms.DialogResult]::OK) { $dialog.SelectedPath };"
+        "$win.Close();"
     )
     try:
         result = subprocess.run(
