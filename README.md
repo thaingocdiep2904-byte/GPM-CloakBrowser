@@ -10,6 +10,14 @@ Hệ thống quản lý profile trình duyệt antidetect chuyên nghiệp, tự
 
 ---
 
+## 💡 Bối cảnh dự án
+
+Dự án **CloakBrowser** gốc tuy sở hữu công nghệ cốt lõi chống dấu vân tay (antidetect) vô cùng mạnh mẽ, nhưng lại thiếu đi giao diện quản trị trực quan và các tính năng quản lý thiết yếu như tạo hàng loạt, xuất/nhập Cookies, quản lý trạng thái và đồng bộ hóa Profile. 
+
+Vì lý do đó, **CloakBrowser-Manager** ra đời. Bằng cách kế thừa sự tiện lợi và tối ưu trong cấu trúc giao diện của **GPM Login** kết hợp với sức mạnh antidetect của **CloakBrowser**, dự án mang lại giải pháp quản trị profile hàng loạt trực quan, dễ dùng nhất cho người dùng phổ thông lẫn các nhà phát triển tự động hóa.
+
+---
+
 ## 🚀 Tính năng nổi bật
 
 - **Quản lý Profile Độc Lập:** Mỗi profile có cookie, bộ nhớ cục bộ, lịch sử và cache riêng biệt, hoàn toàn cô lập.
