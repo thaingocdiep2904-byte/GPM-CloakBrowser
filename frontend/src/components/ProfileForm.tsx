@@ -1,4 +1,4 @@
-import { Save, Trash2, X, RefreshCw, Layers } from "lucide-react";
+import { Save, X, RefreshCw, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Profile, ProfileCreateData } from "../lib/api";
 import { useLanguage } from "../lib/i18n";
@@ -6,7 +6,6 @@ import { useLanguage } from "../lib/i18n";
 interface ProfileFormProps {
   profile: Profile | null; // null = create mode
   onSave: (data: ProfileCreateData) => Promise<void>;
-  onDelete?: () => Promise<void>;
 }
 
 const RESOLUTION_PRESETS: Record<string, { width: number; height: number }> = {
@@ -95,7 +94,7 @@ const generateRandomMac = () => {
   return mac;
 };
 
-export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
+export function ProfileForm({ profile, onSave }: ProfileFormProps) {
   const { lang, t } = useLanguage();
   const isEdit = profile !== null;
 
@@ -128,7 +127,6 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
   });
 
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [tagColor, setTagColor] = useState<string | null>("#6366f1");
   const [launchArgInput, setLaunchArgInput] = useState("");
@@ -239,23 +237,7 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!onDelete) return;
-    if (
-      !confirm(
-        lang === "vi"
-          ? "Xóa profile này? Toàn bộ dữ liệu trình duyệt trên ổ đĩa sẽ bị xóa vĩnh viễn."
-          : "Delete this profile? All browser data on disk will be permanently deleted."
-      )
-    )
-      return;
-    setDeleting(true);
-    try {
-      await onDelete();
-    } finally {
-      setDeleting(false);
-    }
-  };
+
 
   const applyGpuPreset = (name: string) => {
     const preset = GPU_PRESETS[name];
@@ -334,17 +316,6 @@ export function ProfileForm({ profile, onSave, onDelete }: ProfileFormProps) {
           <h2 className="text-base font-bold text-white uppercase tracking-wide">
             {isEdit ? t("form.edit_title") : t("form.create_title")}
           </h2>
-          {isEdit && onDelete && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={deleting}
-              className="btn-danger flex items-center gap-1.5 px-3 py-1 rounded text-[11px]"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              <span>{deleting ? t("form.saving") : t("action.delete")}</span>
-            </button>
-          )}
         </div>
         <div className="flex items-center gap-2 mr-8">
           <button type="submit" disabled={saving} className="px-4 py-1.5 rounded bg-accent hover:bg-accent/90 text-white transition-colors font-medium flex items-center gap-1.5">

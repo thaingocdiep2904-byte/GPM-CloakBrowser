@@ -271,13 +271,6 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
     showFeedback(lang === "vi" ? `Đã tạo thành công ${data.count || 1} profile!` : `Successfully created ${data.count || 1} profiles!`);
   }, [bulkCreate, showFeedback, lang]);
 
-  const handleDelete = useCallback(async () => {
-    if (!selectedId) return;
-    await remove(selectedId);
-    setSelectedId(null);
-    setView("empty");
-  }, [selectedId, remove]);
-
 
   if (loading) {
     return (
@@ -427,7 +420,6 @@ function AppContent({ authRequired, onLogout }: AppContentProps) {
                       <ProfileForm
                         profile={view === "edit" ? selected : null}
                         onSave={view === "create" ? handleCreate : handleUpdate}
-                        onDelete={view === "edit" ? handleDelete : undefined}
                       />
                     </div>
                   </div>
